@@ -704,74 +704,81 @@ export default function App() {
               onClick={() => setShowGenPanel(false)} />
 
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 380, background: 'var(--bg-secondary)', borderLeft: '1px solid var(--border)', zIndex: 50, display: 'flex', flexDirection: 'column' }}>
+              style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 400, background: '#0B0B0F', borderLeft: '1px solid #1A1A28', zIndex: 50, display: 'flex', flexDirection: 'column' }}>
 
               {/* Panel header */}
-              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ padding: '18px 20px', borderBottom: '1px solid #1A1A28', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>New Product Kit</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>Upload a photo to get started</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>New Product Kit</p>
+                  <p style={{ fontSize: 12, color: '#8B8BA7', marginTop: 2 }}>Upload a photo to get started</p>
                 </div>
                 <button onClick={() => setShowGenPanel(false)}
-                  style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-2)' }}>
-                  <X size={15} />
+                  style={{ width: 38, height: 38, borderRadius: 12, background: '#131320', border: '1px solid #1A1A28', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#8B8BA7' }}>
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Panel body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 22 }}>
-                {/* Mode toggle */}
-                <div>
-                  <p style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 10 }}>Generation Type</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {([['catalog', 'Catalog Images', ImageIcon], ['listing', 'Listing Copy', FileText]] as const).map(([id, label, Icon]) => (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+                {/* Mode toggle — 2 tiles */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {([['catalog', 'Catalog Images', ImageIcon] as const, ['listing', 'Listing Copy', FileText] as const]).map(([id, label, Icon]) => {
+                    const sel = genMode === id;
+                    return (
                       <button key={id} onClick={() => setGenMode(id)}
-                        style={{ padding: '12px', borderRadius: 10, background: genMode === id ? 'rgba(108,92,231,0.12)' : 'var(--card-bg)', border: `1px solid ${genMode === id ? 'rgba(108,92,231,0.4)' : 'var(--border)'}`, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
-                        <Icon size={18} color={genMode === id ? 'var(--accent)' : 'var(--text-3)'} style={{ marginBottom: 6 }} />
-                        <p style={{ fontSize: 12, fontWeight: 700, color: genMode === id ? '#a78bfa' : 'var(--text-2)' }}>{label}</p>
+                        style={{ padding: '16px 12px', borderRadius: 16, background: sel ? 'rgba(92,59,229,0.15)' : '#131320', border: `1.5px solid ${sel ? '#5C3BE5' : '#1A1A28'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, transition: 'all 0.15s' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: sel ? 'rgba(92,59,229,0.2)' : '#1E1E2E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={20} color={sel ? '#5C3BE5' : '#3A3A52'} />
+                        </div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: sel ? '#fff' : '#8B8BA7', textAlign: 'center' }}>{label}</p>
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
 
                 {/* Upload */}
                 <div>
-                  <p style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 10 }}>Product Photo</p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: -0.3, marginBottom: 4 }}>1. Upload Product Photo</p>
+                  <p style={{ fontSize: 12, color: '#8B8BA7', marginBottom: 12 }}>Upload a clear photo of your product</p>
                   <div {...getRootProps()}
-                    style={{ border: `2px dashed ${isDragActive ? 'var(--accent)' : sourceImage ? 'rgba(108,92,231,0.4)' : 'var(--border)'}`, borderRadius: 12, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: isDragActive ? 'rgba(108,92,231,0.06)' : 'var(--card-bg)', transition: 'all 0.15s', minHeight: 140 }}>
+                    style={{ height: 180, border: `1.5px dashed ${isDragActive ? '#5C3BE5' : sourceImage ? 'rgba(92,59,229,0.5)' : '#1A1A28'}`, borderRadius: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', background: isDragActive ? 'rgba(92,59,229,0.06)' : sourceImage ? 'rgba(92,59,229,0.04)' : '#131320', transition: 'all 0.15s', overflow: 'hidden' }}>
                     <input {...getInputProps()} />
                     {sourceImage ? (
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: 60, height: 60, borderRadius: 10, overflow: 'hidden', margin: '0 auto 10px' }}>
-                          <img src={`data:${sourceImage.mimeType};base64,${sourceImage.base64}`} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 3 }}>{sourceImage.name}</p>
-                        <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>Tap to change</p>
-                      </div>
+                      <img src={`data:${sourceImage.mimeType};base64,${sourceImage.base64}`} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(108,92,231,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Upload size={18} color="var(--accent)" />
+                        <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(92,59,229,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Upload size={24} color="#5C3BE5" />
                         </div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', textAlign: 'center' }}>Drop your product photo here</p>
-                        <p style={{ fontSize: 11, color: 'var(--text-3)' }}>JPEG, PNG, WEBP — max 10MB</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Tap to upload</p>
+                        <p style={{ fontSize: 11, color: '#3A3A52' }}>JPG, PNG, WEBP — max 10MB</p>
                       </>
                     )}
                   </div>
+                  {sourceImage && (
+                    <p style={{ fontSize: 11, color: '#5C3BE5', fontWeight: 700, textAlign: 'center', marginTop: 8, cursor: 'pointer' }}
+                      onClick={() => setSourceImage(null)}>
+                      ✕ Remove photo
+                    </p>
+                  )}
                 </div>
 
-                {/* Category */}
+                {/* Category grid — matches mobile 3-col square tiles */}
                 <div>
-                  <p style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 10 }}>Product Category</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: -0.3, marginBottom: 4 }}>2. Select Category</p>
+                  <p style={{ fontSize: 12, color: '#8B8BA7', marginBottom: 14 }}>What type of product is this?</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                     {CATEGORIES.map(cat => {
                       const Icon = ICON_MAP[cat.icon] || Package;
                       const sel = selectedCategory === cat.id;
                       return (
                         <button key={cat.id} onClick={() => handleCategoryChange(cat.id)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: sel ? 'rgba(108,92,231,0.1)' : 'var(--card-bg)', border: `1px solid ${sel ? 'rgba(108,92,231,0.4)' : 'var(--border)'}`, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left' }}>
-                          <Icon size={15} color={sel ? 'var(--accent)' : 'var(--text-3)'} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: sel ? '#a78bfa' : 'var(--text-2)' }}>{cat.label}</span>
+                          style={{ aspectRatio: '1', borderRadius: 16, background: sel ? 'rgba(92,59,229,0.15)' : '#131320', border: `1.5px solid ${sel ? '#5C3BE5' : '#1A1A28'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.15s', padding: 8 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 12, background: sel ? 'rgba(92,59,229,0.2)' : '#1E1E2E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon size={18} color={sel ? '#5C3BE5' : '#3A3A52'} />
+                          </div>
+                          <p style={{ fontSize: 10, fontWeight: 600, color: sel ? '#fff' : '#8B8BA7', textAlign: 'center', lineHeight: 1.3 }}>{cat.label}</p>
                         </button>
                       );
                     })}
@@ -780,18 +787,20 @@ export default function App() {
               </div>
 
               {/* Panel CTA */}
-              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+              <div style={{ padding: '14px 20px 20px', borderTop: '1px solid #1A1A28', background: '#0B0B0F' }}>
                 {genMode === 'catalog' ? (
-                  <button onClick={handleGenerate} disabled={!sourceImage || isGenerating} className="btn-primary" style={{ width: '100%' }}>
+                  <button onClick={handleGenerate} disabled={!sourceImage || isGenerating}
+                    style={{ width: '100%', height: 56, borderRadius: 16, background: !sourceImage || isGenerating ? '#131320' : 'linear-gradient(135deg,#5C3BE5,#7C5CFF)', border: 'none', cursor: !sourceImage || isGenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: !sourceImage || isGenerating ? '#3A3A52' : '#fff', boxShadow: !sourceImage || isGenerating ? 'none' : '0 4px 20px rgba(92,59,229,0.4)', transition: 'all 0.15s' }}>
                     {isGenerating
-                      ? <><RefreshCcw size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Generating… ({variations.filter(v => v.status === 'completed').length}/{variations.length})</>
-                      : <><Zap size={15} /> Generate Catalog</>}
+                      ? <><RefreshCcw size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Generating… {variations.filter(v => v.status === 'completed').length}/{variations.length}</>
+                      : <><Zap size={16} /> Generate Catalog</>}
                   </button>
                 ) : (
-                  <button onClick={handleGenerateListing} disabled={!sourceImage || isGeneratingListing} className="btn-primary" style={{ width: '100%' }}>
+                  <button onClick={handleGenerateListing} disabled={!sourceImage || isGeneratingListing}
+                    style={{ width: '100%', height: 56, borderRadius: 16, background: !sourceImage || isGeneratingListing ? '#131320' : 'linear-gradient(135deg,#5C3BE5,#7C5CFF)', border: 'none', cursor: !sourceImage || isGeneratingListing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: !sourceImage || isGeneratingListing ? '#3A3A52' : '#fff', boxShadow: !sourceImage || isGeneratingListing ? 'none' : '0 4px 20px rgba(92,59,229,0.4)', transition: 'all 0.15s' }}>
                     {isGeneratingListing
-                      ? <><RefreshCcw size={15} style={{ animation: 'spin 0.8s linear infinite' }} /> Generating…</>
-                      : <><Sparkles size={15} /> Generate Listing</>}
+                      ? <><RefreshCcw size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Generating…</>
+                      : <><Sparkles size={16} /> Generate Listing</>}
                   </button>
                 )}
               </div>
