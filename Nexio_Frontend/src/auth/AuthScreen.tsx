@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Zap } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Zap, Sparkles, ShoppingBag, BarChart3 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { devGetMagicToken, devGetResetToken } from './mockAuth';
 
@@ -20,42 +20,44 @@ const AppleIcon = () => (
   </svg>
 );
 
-function Input({
-  label, type = 'text', value, onChange, placeholder, icon: Icon, autoComplete,
-}: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  icon?: React.ComponentType<{ size: number; className?: string }>;
-  autoComplete?: string;
+function FieldInput({ label, type = 'text', value, onChange, placeholder, icon: Icon, autoComplete }: {
+  label: string; type?: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; icon?: React.ComponentType<{ size: number; className?: string }>; autoComplete?: string;
 }) {
   const [show, setShow] = useState(false);
   const isPassword = type === 'password';
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] uppercase tracking-widest text-zinc-500 font-bold block">{label}</label>
+      <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-3)', fontWeight: 700, display: 'block' }}>{label}</label>
       <div className="relative">
-        {Icon && (
-          <Icon size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-        )}
+        {Icon && <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-3)' }} />}
         <input
           type={isPassword && show ? 'text' : type}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className="w-full bg-zinc-800/60 border border-zinc-700 rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:border-indigo-500 focus:outline-none transition-colors"
-          style={{ paddingLeft: Icon ? '2.5rem' : undefined, paddingRight: isPassword ? '2.5rem' : undefined }}
+          style={{
+            width: '100%',
+            background: '#12121A',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '11px 14px',
+            paddingLeft: Icon ? '2.25rem' : 14,
+            paddingRight: isPassword ? '2.25rem' : 14,
+            fontSize: 14,
+            color: 'var(--text-1)',
+            outline: 'none',
+            transition: 'border-color 0.15s',
+          }}
+          onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--border)')}
         />
         {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShow(s => !s)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            {show ? <EyeOff size={15} /> : <Eye size={15} />}
+          <button type="button" onClick={() => setShow(s => !s)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+            style={{ color: 'var(--text-3)' }}>
+            {show ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         )}
       </div>
@@ -64,43 +66,37 @@ function Input({
 }
 
 function Btn({ children, onClick, variant = 'primary', disabled, type = 'button' }: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
-  disabled?: boolean;
-  type?: 'button' | 'submit';
+  children: React.ReactNode; onClick?: () => void;
+  variant?: 'primary' | 'secondary'; disabled?: boolean; type?: 'button' | 'submit';
 }) {
-  const base = 'w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  const styles = {
-    primary: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20',
-    secondary: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700',
-    ghost: 'text-zinc-400 hover:text-zinc-200',
-  };
+  if (variant === 'primary') {
+    return (
+      <button type={type} onClick={onClick} disabled={disabled} className="btn-primary w-full">
+        {children}
+      </button>
+    );
+  }
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className="btn-secondary w-full">
       {children}
     </button>
   );
 }
 
-function Divider() {
-  return (
-    <div className="flex items-center gap-3 my-1">
-      <div className="flex-1 h-px bg-zinc-800" />
-      <span className="text-[11px] text-zinc-600 uppercase tracking-widest">or</span>
-      <div className="flex-1 h-px bg-zinc-800" />
-    </div>
-  );
-}
+const FEATURES = [
+  { icon: Sparkles, title: 'AI Product Images', desc: 'Generate stunning ad variations in seconds' },
+  { icon: ShoppingBag, title: 'Marketplace Listings', desc: 'Etsy, Amazon, Shopify & more' },
+  { icon: BarChart3, title: 'Smart Insights', desc: 'Discover what converts best' },
+];
 
-function DevPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-4 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
-      <p className="text-[10px] uppercase tracking-widest text-amber-500/70 font-bold mb-2">Dev / Mock Mode</p>
-      {children}
-    </div>
-  );
-}
+const DEMO_IMAGES = [
+  'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1614094082869-cd4e4b2905c7?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
+];
 
 export default function AuthScreen() {
   const { signIn, signUp, signInWithOAuth, sendMagicLink, verifyMagicLink, sendPasswordReset, resetPassword } = useAuth();
@@ -113,18 +109,9 @@ export default function AuthScreen() {
   const [newPass, setNewPass] = useState('');
   const [newPassConfirm, setNewPassConfirm] = useState('');
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function reset(v: View) {
-    setView(v);
-    setError('');
-    setInfo('');
-    setPassword('');
-    setConfirm('');
-    setNewPass('');
-    setNewPassConfirm('');
-  }
+  function reset(v: View) { setView(v); setError(''); setPassword(''); setConfirm(''); setNewPass(''); setNewPassConfirm(''); }
 
   async function handleSignIn() {
     if (!email || !password) return setError('Please fill in all fields.');
@@ -162,240 +149,241 @@ export default function AuthScreen() {
     setLoading(true); setError('');
     const { error: e } = await sendPasswordReset(email);
     if (e) { setError(e); setLoading(false); return; }
-    setView('reset_sent');
-    setLoading(false);
+    setView('reset_sent'); setLoading(false);
   }
 
   async function handleResetPassword() {
-    if (!newPass) return setError('Please enter a new password.');
-    if (newPass.length < 8) return setError('Password must be at least 8 characters.');
+    if (!newPass || newPass.length < 8) return setError('Password must be at least 8 characters.');
     if (newPass !== newPassConfirm) return setError('Passwords do not match.');
     const token = devGetResetToken();
     if (!token) return setError('No pending reset token found.');
     const { error: e } = await resetPassword(token, newPass);
     if (e) { setError(e); return; }
-    setInfo('Password updated! You can now sign in.');
     reset('signin');
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-y-auto">
-      <div className="w-full max-w-md">
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-primary)' }}>
+
+      {/* ── Left panel — visual ── */}
+      <div style={{ flex: '0 0 520px', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', padding: '48px 48px 40px', position: 'relative', overflow: 'hidden' }}>
+
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-indigo-500/30">A</div>
-          <span className="text-2xl font-semibold tracking-tight text-white">
-            Ad<span className="text-indigo-500 underline decoration-2 underline-offset-4">Genius</span>
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#6C5CE7,#8A7BFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: '#fff' }}>N</div>
+          <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)' }}>Nexio</span>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+        {/* Headline */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-1)', lineHeight: 1.2, marginBottom: 12 }}>
+            Create.<br />Optimize.<br />Sell.
+          </h1>
+          <p style={{ fontSize: 15, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            Turn one product photo into a full marketplace listing that sells.
+          </p>
+        </div>
+
+        {/* Feature list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 40 }}>
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(108,92,231,0.12)', border: '1px solid rgba(108,92,231,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={15} color="var(--accent)" />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', marginBottom: 2 }}>{title}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-2)' }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Demo image grid: "Your Photo → AI Generated" */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+            {/* Source photo */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 80, height: 80, borderRadius: 12, overflow: 'hidden', border: '2px solid var(--border)' }}>
+                <img src={DEMO_IMAGES[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+              <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your Photo</span>
+            </div>
+
+            <div style={{ color: 'var(--text-3)', fontSize: 18, marginBottom: 24, fontWeight: 300 }}>→</div>
+
+            {/* AI output grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                {DEMO_IMAGES.slice(1).map((src, i) => (
+                  <div key={i} style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.background = '#1E1E2E'; }} />
+                  </div>
+                ))}
+              </div>
+              <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Generated</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Subtle glow */}
+        <div style={{ position: 'absolute', bottom: -120, left: -60, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(108,92,231,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      </div>
+
+      {/* ── Right panel — form ── */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
 
           {/* Sign In */}
           {view === 'signin' && (
-            <div className="space-y-4">
-              <div className="mb-6">
-                <h1 className="text-xl font-semibold text-white mb-1">Welcome back</h1>
-                <p className="text-sm text-zinc-500">Sign in to your account</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ marginBottom: 8 }}>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-1)', marginBottom: 6 }}>Welcome back</h2>
+                <p style={{ fontSize: 14, color: 'var(--text-2)' }}>Sign in to your account</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => signInWithOAuth('google')}
-                  className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-medium py-2.5 rounded-lg text-sm transition-colors"
-                >
-                  <GoogleIcon /> Google
-                </button>
-                <button
-                  onClick={() => signInWithOAuth('apple')}
-                  className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-medium py-2.5 rounded-lg text-sm transition-colors"
-                >
-                  <AppleIcon /> Apple
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[{ label: 'Google', Icon: GoogleIcon, provider: 'google' as const }, { label: 'Apple', Icon: AppleIcon, provider: 'apple' as const }].map(({ label, Icon, provider }) => (
+                  <button key={label} onClick={() => signInWithOAuth(provider)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', transition: 'background 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#1E1E2E')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--card-bg)')}>
+                    <Icon /> {label}
+                  </button>
+                ))}
               </div>
 
-              <Divider />
-
-              <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
-              <Input label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" icon={Lock} autoComplete="current-password" />
-
-              <div className="flex justify-end">
-                <button onClick={() => reset('forgot')} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                  Forgot password?
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>or</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               </div>
 
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              {info && <p className="text-sm text-emerald-400">{info}</p>}
+              <FieldInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
+              <FieldInput label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" icon={Lock} autoComplete="current-password" />
 
-              <Btn onClick={handleSignIn} disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign In'}
-              </Btn>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+                <button onClick={() => reset('forgot')} style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>Forgot password?</button>
+              </div>
 
-              <button
-                onClick={() => reset('magic')}
-                className="w-full text-center text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
-              >
-                <Zap size={12} className="inline mr-1" />Use magic link instead
+              {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
+
+              <Btn onClick={handleSignIn} disabled={loading}>{loading ? 'Signing in…' : 'Sign In'}</Btn>
+
+              <button onClick={() => reset('magic')} style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <Zap size={12} color="var(--accent)" /> Use magic link instead
               </button>
 
-              <p className="text-center text-xs text-zinc-600">
-                No account?{' '}
-                <button onClick={() => reset('signup')} className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
-                  Create one
-                </button>
-              </p>
-
-              {/* Demo credentials */}
-              <div className="mt-2 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-600 font-bold mb-1.5">Demo accounts</p>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => { setEmail('demo@nexio.com'); setPassword('demo1234'); }}
-                    className="w-full text-left text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-mono"
-                  >
-                    demo@nexio.com / demo1234 <span className="text-zinc-700">· user</span>
+              {/* Demo accounts */}
+              <div style={{ padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <p style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 8 }}>Demo accounts</p>
+                {[{ email: 'demo@nexio.com', pass: 'demo1234' }, { email: 'admin@nexio.com', pass: 'admin1234' }].map(d => (
+                  <button key={d.email} onClick={() => { setEmail(d.email); setPassword(d.pass); }}
+                    style={{ display: 'block', fontSize: 11, color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'monospace', marginBottom: 4, textAlign: 'left' }}>
+                    {d.email} / {d.pass}
                   </button>
-                  <button
-                    onClick={() => { setEmail('admin@nexio.com'); setPassword('admin1234'); }}
-                    className="w-full text-left text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-mono"
-                  >
-                    admin@nexio.com / admin1234 <span className="text-zinc-700">· admin</span>
-                  </button>
-                </div>
+                ))}
               </div>
+
+              <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
+                No account?{' '}
+                <button onClick={() => reset('signup')} style={{ color: 'var(--accent)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }}>Create one</button>
+              </p>
             </div>
           )}
 
           {/* Sign Up */}
           {view === 'signup' && (
-            <div className="space-y-4">
-              <button onClick={() => reset('signin')} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <button onClick={() => reset('signin')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 4 }}>
                 <ArrowLeft size={13} /> Back to sign in
               </button>
-
-              <div className="mb-2">
-                <h1 className="text-xl font-semibold text-white mb-1">Create account</h1>
-                <p className="text-sm text-zinc-500">Start generating catalog ads</p>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)', marginBottom: 6 }}>Create account</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-2)' }}>Start generating catalog ads</p>
               </div>
-
-              <Input label="Name (optional)" value={name} onChange={setName} placeholder="Your name" icon={User} autoComplete="name" />
-              <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
-              <Input label="Password" type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" icon={Lock} autoComplete="new-password" />
-              <Input label="Confirm password" type="password" value={confirm} onChange={setConfirm} placeholder="••••••••" icon={Lock} autoComplete="new-password" />
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
-              <Btn onClick={handleSignUp} disabled={loading}>
-                {loading ? 'Creating account…' : 'Create Account'}
-              </Btn>
-
-              <p className="text-center text-[11px] text-zinc-600">
-                You'll receive a verification email before your first generation.
-              </p>
+              <FieldInput label="Name (optional)" value={name} onChange={setName} placeholder="Your name" icon={User} autoComplete="name" />
+              <FieldInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
+              <FieldInput label="Password" type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" icon={Lock} autoComplete="new-password" />
+              <FieldInput label="Confirm password" type="password" value={confirm} onChange={setConfirm} placeholder="••••••••" icon={Lock} autoComplete="new-password" />
+              {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
+              <Btn onClick={handleSignUp} disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</Btn>
             </div>
           )}
 
-          {/* Magic Link */}
+          {/* Magic link */}
           {view === 'magic' && (
-            <div className="space-y-4">
-              <button onClick={() => reset('signin')} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
-                <ArrowLeft size={13} /> Back to sign in
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <button onClick={() => reset('signin')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <ArrowLeft size={13} /> Back
               </button>
-
-              <div className="mb-2">
-                <h1 className="text-xl font-semibold text-white mb-1">Magic link</h1>
-                <p className="text-sm text-zinc-500">We'll email you a one-click sign-in link.</p>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)', marginBottom: 6 }}>Magic link</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-2)' }}>We'll email you a one-click sign-in link.</p>
               </div>
-
-              <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
+              <FieldInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
+              {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
               <Btn onClick={handleMagicLink}><Zap size={15} /> Send Magic Link</Btn>
             </div>
           )}
 
-          {/* Magic Sent */}
+          {/* Magic sent */}
           {view === 'magic_sent' && (
-            <div className="space-y-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-2">
-                <Mail size={24} className="text-indigo-400" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center', alignItems: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(108,92,231,0.1)', border: '1px solid rgba(108,92,231,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size={24} color="var(--accent)" />
               </div>
-              <h1 className="text-xl font-semibold text-white">Check your inbox</h1>
-              <p className="text-sm text-zinc-500">
-                We sent a magic link to <span className="text-zinc-300">{email}</span>.
-                Click it to sign in instantly.
-              </p>
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
-              <DevPanel>
-                <Btn variant="secondary" onClick={handleSimulateMagic}>
-                  Simulate email click
-                </Btn>
-              </DevPanel>
-
-              <button onClick={() => reset('signin')} className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors w-full pt-2">
-                <ArrowLeft size={13} /> Back to sign in
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)' }}>Check your inbox</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>We sent a magic link to <strong style={{ color: 'var(--text-1)' }}>{email}</strong>.</p>
+              <div style={{ width: '100%', padding: '12px 16px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10 }}>
+                <p style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Dev / Mock Mode</p>
+                <Btn variant="secondary" onClick={handleSimulateMagic}>Simulate email click</Btn>
+              </div>
+              <button onClick={() => reset('signin')} style={{ fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ArrowLeft size={12} /> Back to sign in
               </button>
             </div>
           )}
 
-          {/* Forgot Password */}
+          {/* Forgot */}
           {view === 'forgot' && (
-            <div className="space-y-4">
-              <button onClick={() => reset('signin')} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
-                <ArrowLeft size={13} /> Back to sign in
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <button onClick={() => reset('signin')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <ArrowLeft size={13} /> Back
               </button>
-
-              <div className="mb-2">
-                <h1 className="text-xl font-semibold text-white mb-1">Reset password</h1>
-                <p className="text-sm text-zinc-500">Enter your email and we'll send a reset link.</p>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)', marginBottom: 6 }}>Reset password</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-2)' }}>Enter your email and we'll send a reset link.</p>
               </div>
-
-              <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
-              <Btn onClick={handleForgot} disabled={loading}>
-                {loading ? 'Sending…' : 'Send Reset Email'}
-              </Btn>
+              <FieldInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" icon={Mail} autoComplete="email" />
+              {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
+              <Btn onClick={handleForgot} disabled={loading}>{loading ? 'Sending…' : 'Send Reset Email'}</Btn>
             </div>
           )}
 
-          {/* Reset Sent */}
+          {/* Reset sent */}
           {view === 'reset_sent' && (
-            <div className="space-y-4">
-              <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-2">
-                <Mail size={24} className="text-indigo-400" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(108,92,231,0.1)', border: '1px solid rgba(108,92,231,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size={24} color="var(--accent)" />
               </div>
-              <h1 className="text-xl font-semibold text-white text-center">Check your inbox</h1>
-              <p className="text-sm text-zinc-500 text-center">
-                We sent a password reset link to <span className="text-zinc-300">{email}</span>.
-              </p>
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
-              <DevPanel>
-                <p className="text-xs text-zinc-500 mb-3">Simulate clicking the reset link and set a new password:</p>
-                <div className="space-y-3">
-                  <Input label="New password" type="password" value={newPass} onChange={setNewPass} placeholder="Min. 8 characters" icon={Lock} autoComplete="new-password" />
-                  <Input label="Confirm new password" type="password" value={newPassConfirm} onChange={setNewPassConfirm} placeholder="••••••••" icon={Lock} autoComplete="new-password" />
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)' }}>Check your inbox</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>We sent a reset link to <strong style={{ color: 'var(--text-1)' }}>{email}</strong>.</p>
+              <div style={{ width: '100%', padding: '12px 16px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10 }}>
+                <p style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Dev / Mock Mode</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <FieldInput label="New password" type="password" value={newPass} onChange={setNewPass} placeholder="Min. 8 characters" icon={Lock} autoComplete="new-password" />
+                  <FieldInput label="Confirm" type="password" value={newPassConfirm} onChange={setNewPassConfirm} placeholder="••••••••" icon={Lock} autoComplete="new-password" />
                   <Btn variant="secondary" onClick={handleResetPassword}>Set New Password</Btn>
                 </div>
-              </DevPanel>
-
-              <button onClick={() => reset('signin')} className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors w-full pt-1">
-                <ArrowLeft size={13} /> Back to sign in
+              </div>
+              {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
+              <button onClick={() => reset('signin')} style={{ fontSize: 12, color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ArrowLeft size={12} /> Back to sign in
               </button>
             </div>
           )}
         </div>
-
-        <p className="text-center text-[10px] text-zinc-700 mt-6 uppercase tracking-widest">
-          Mock auth mode · no real emails sent
-        </p>
       </div>
     </div>
   );
