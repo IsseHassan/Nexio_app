@@ -6,6 +6,7 @@ import {
   Maximize2, X, Zap, Archive, ChevronDown, Package, Heart, Columns2,
   Trophy, Plus, Clock, Image as ImageIcon, FileText, Store,
   Sofa, Gem, Smartphone, Shirt, BarChart3, TrendingUp, Eye, MousePointer, MessageSquare,
+  Sparkles as SparklesIcon, Coffee, Lamp, Heart as HeartIcon, Palette, Dumbbell, BookOpen, Gift,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getVariationsForCategory, CATEGORIES, CategoryType, AdVariation } from './constants';
@@ -18,7 +19,10 @@ import { InsightsPanel } from './components/InsightsPanel';
 import { trackEvent, getRecommendations, type IntelligenceResult } from './services/analyticsService';
 import { Sidebar, type SidebarView } from './components/Sidebar';
 
-const ICON_MAP: Record<string, any> = { Sofa, Gem, Smartphone, Shirt, Package };
+const ICON_MAP: Record<string, any> = {
+  Sofa, Gem, Smartphone, Shirt, Package,
+  Sparkles: SparklesIcon, Coffee, Lamp, Heart: HeartIcon, Palette, Dumbbell, BookOpen, Gift,
+};
 
 const PLATFORM_BADGE: Record<string, { bg: string; color: string }> = {
   amazon:    { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
