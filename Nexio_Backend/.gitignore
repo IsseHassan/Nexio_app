@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+service-account.json
+.claude/
+
+# User data — never commit real store/kit/event data
+data/*.json
+data/*.jsonl
+data/store-images/

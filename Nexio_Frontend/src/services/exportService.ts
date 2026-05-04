@@ -1,0 +1,123 @@
+import JSZip from 'jszip';
+import type { AdVariation } from '../constants';
+import type { ListingResult } from './listingService';
+
+export type ExportPlatform = 'full' | 'etsy' | 'amazon' | 'shopify' | 'instagram' | 'tiktok';
+
+export const EXPORT_PRESETS: { id: ExportPlatform; label: string; includes: string[] }[] = [
+  { id: 'full',      label: 'Full Pack',       includes: ['6 images', 'All copy files', 'Etsy, Amazon & Shopify CSV'] },
+  { id: 'etsy',      label: 'Etsy Seller',     includes: ['6 images', 'etsy-listing.txt', 'etsy-listing-data.csv'] },
+  { id: 'amazon',    label: 'Amazon Seller',   includes: ['6 images', 'amazon-listing.txt', 'amazon-listing-data.csv'] },
+  { id: 'shopify',   label: 'Shopify Store',   includes: ['6 images', 'shopify-product.txt', 'shopify-import.csv'] },
+  { id: 'instagram', label: 'Instagram',       includes: ['6 images', 'instagram-caption.txt'] },
+  { id: 'tiktok',    label: 'TikTok',          includes: ['6 images', 'tiktok-content.txt'] },
+];
+
+const IMAGE_NAMES: Record<string, string> = {
+  main_shot: '01-main-shot',
+  human_interaction: '02-in-context',
+  hand_held: '03-hand-held',
+  macro_detail: '04-macro-detail',
+  studio_stand: '05-studio-stand',
+  lifestyle_scene: '06-lifestyle-scene',
+};
+
+function q(s: string) { return `"${s.replace(/"/g, '""')}"`; }
+
+function buildEtsyTxt(l: ListingResult): string {
+  const d = l.etsy.description;
+  const sections = [d.intro, d.details,
+    d.materials && `MATERIALS\n${d.materials}`, d.care && `CARE\n${d.care}`,
+    d.shipping && `SHIPPING\n${d.shipping}`, d.gift && `GIFT\n${d.gift}`,
+  ].filter(Boolean).join('\n\n');
+  return ['ETSY LISTING', '═══════════════════════════════', '', 'TITLE', l.etsy.title, '',
+    'TAGS', l.etsy.tags.join(', '), '', 'DESCRIPTION', sections, '', 'KEYWORDS', l.global.keywords.join(', ')].join('\n');
+}
+
+function buildAmazonTxt(l: ListingResult): string {
+  return ['AMAZON LISTING', '═══════════════════════════════', '', 'TITLE', l.amazon.title, '',
+    'BULLET POINTS', ...l.amazon.bullets.map(b => `• ${b}`), '', 'DESCRIPTION', l.amazon.description,
+    '', 'BACKEND KEYWORDS', l.amazon.backend_keywords.join(', ')].join('\n');
+}
+
+function buildShopifyTxt(l: ListingResult): string {
+  return ['SHOPIFY PRODUCT', '═══════════════════════════════', '', 'TITLE', l.global.title, '',
+    'SHORT DESCRIPTION', l.global.short_description, '', 'LONG DESCRIPTION', l.global.long_description,
+    '', 'BULLET POINTS', ...l.amazon.bullets.map(b => `• ${b}`), '', 'KEYWORDS', l.global.keywords.join(', ')].join('\n');
+}
+
+function buildInstagramTxt(l: ListingResult): string {
+  return ['INSTAGRAM CONTENT', '═══════════════════════════════', '', 'CAPTION', l.instagram.caption,
+    '', 'HASHTAGS', l.instagram.hashtags.join(' ')].join('\n');
+}
+
+function buildTikTokTxt(l: ListingResult): string {
+  return ['TIKTOK CONTENT', '═══════════════════════════════', '', 'HOOK', l.tiktok.hook,
+    '', 'CAPTION', l.tiktok.caption, '', 'HASHTAGS', l.tiktok.hashtags.join(' ')].join('\n');
+}
+
+function buildEtsyCSV(l: ListingResult): string {
+  const desc = Object.values(l.etsy.description).filter(Boolean).join('\n\n');
+  return ['TITLE,DESCRIPTION,TAGS,PRICE,QUANTITY,SKU',
+    [q(l.etsy.title), q(desc), q(l.etsy.tags.join(',')), '', '', ''].join(',')].join('\n');
+}
+
+function buildAmazonCSV(l: ListingResult): string {
+  const headers = 'item_name,bullet_point1,bullet_point2,bullet_point3,bullet_point4,bullet_point5,product_description,generic_keywords';
+  const bullets = [...l.amazon.bullets.slice(0, 5)];
+  while (bullets.length < 5) bullets.push('');
+  return [headers, [q(l.amazon.title), ...bullets.map(q), q(l.amazon.description), q(l.amazon.backend_keywords.join(','))].join(',')].join('\n');
+}
+
+function buildShopifyCSV(l: ListingResult): string {
+  const headers = 'Handle,Title,Body (HTML),Vendor,Type,Tags,Published,Variant Price,Variant Inventory Qty';
+  const handle = l.global.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+  const body = `<p>${l.global.long_description.replace(/\n/g, '</p><p>')}</p>`;
+  return [headers, [q(handle), q(l.global.title), q(body), '', '', q(l.global.keywords.slice(0, 10).join(',')), 'true', '', ''].join(',')].join('\n');
+}
+
+function buildInstructions(platform: ExportPlatform): string {
+  const name = { full: 'All Platforms', etsy: 'Etsy', amazon: 'Amazon', shopify: 'Shopify', instagram: 'Instagram', tiktok: 'TikTok' }[platform];
+  return `ADGENIUS AI — EXPORT PACK\nGenerated for: ${name}\nDate: ${new Date().toLocaleDateString()}\n════════════════════════════════════\n\nIMAGES FOLDER\n• AI-generated product images ready to upload\n• Use "01-main-shot" as your primary listing image\n\nCOPY FOLDER\n• Platform-optimized text — paste directly into your editor\n\nIMPORT FOLDER\n• Etsy: Seller Dashboard → Listings → Add via CSV\n• Amazon: Seller Central → Add Products via Upload\n• Shopify: Products → Import → Upload CSV\n\nGenerated by AdGenius AI`;
+}
+
+export async function exportProductKit(
+  variations: AdVariation[],
+  listing: ListingResult | null,
+  platform: ExportPlatform,
+): Promise<void> {
+  const zip = new JSZip();
+  const all = platform === 'full';
+
+  // Images — extract base64 from data URI
+  const completed = variations.filter(v => v.status === 'completed' && v.imageUrl);
+  for (const v of completed) {
+    const name = IMAGE_NAMES[v.type] ?? `image-${v.type}`;
+    const base64 = v.imageUrl!.includes(',') ? v.imageUrl!.split(',')[1] : v.imageUrl!;
+    zip.file(`images/${name}.png`, base64, { base64: true });
+  }
+
+  // Copy + CSV (only if listing available)
+  if (listing) {
+    if (all || platform === 'etsy')      zip.file('copy/etsy-listing.txt',      buildEtsyTxt(listing));
+    if (all || platform === 'amazon')    zip.file('copy/amazon-listing.txt',    buildAmazonTxt(listing));
+    if (all || platform === 'shopify')   zip.file('copy/shopify-product.txt',   buildShopifyTxt(listing));
+    if (all || platform === 'instagram') zip.file('copy/instagram-caption.txt', buildInstagramTxt(listing));
+    if (all || platform === 'tiktok')    zip.file('copy/tiktok-content.txt',    buildTikTokTxt(listing));
+    if (all || platform === 'etsy')      zip.file('import/etsy-listing-data.csv',   buildEtsyCSV(listing));
+    if (all || platform === 'amazon')    zip.file('import/amazon-listing-data.csv', buildAmazonCSV(listing));
+    if (all || platform === 'shopify')   zip.file('import/shopify-import.csv',      buildShopifyCSV(listing));
+  }
+
+  zip.file('instructions.txt', buildInstructions(platform));
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `adgenius-${platform}-pack.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

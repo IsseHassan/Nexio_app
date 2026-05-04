@@ -1,0 +1,15 @@
+# Claude Code internal settings
+.claude/
+
+# Windows
+desktop.ini
+Thumbs.db
+
+# Expo root cache
+.expo/
+
+# macOS
+.DS_Store
+
+# Dependencies (catch-all for root-level installs)
+node_modules/

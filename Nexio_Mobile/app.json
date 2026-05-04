@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Nexio",
+    "slug": "nexio-mobile",
+    "version": "1.0.0",
+    "scheme": "nexio",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nexio.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Nexio uses your camera to photograph products for AI-powered ad generation.",
+        "NSPhotoLibraryUsageDescription": "Nexio reads your photos to select product images for ad generation.",
+        "NSPhotoLibraryAddUsageDescription": "Nexio saves generated ad images to your photo library."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090b"
+      },
+      "package": "com.nexio.mobile",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image-picker",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Nexio to access your photos.",
+          "savePhotosPermission": "Allow Nexio to save generated images.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ],
+    "extra": {
+      "geminiApiKey": ""
+    }
+  }
+}
