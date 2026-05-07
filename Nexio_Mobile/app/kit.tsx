@@ -5,6 +5,7 @@ import {
   ArrowLeft, Edit2, Download, Image as ImageIcon,
   FileText, Hash as SocialIcon, Archive, Globe, Tag, ShoppingBag,
   Hash, Music, Copy, Check, X, Plus, Save, Share2, RefreshCw, Zap, Heart,
+  Sparkles,
 } from 'lucide-react-native';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, Image,
@@ -22,13 +23,14 @@ import type { ListingResult } from '../src/services/listingService';
 import { getPresetsForCategory, type StylePreset } from '../src/stylePresets';
 import { trackEvent, getRecommendations, type IntelligenceResult } from '../src/services/analyticsService';
 
-const BG      = '#0B0B0F';
-const CARD    = '#131320';
-const BORDER  = '#1A1A28';
-const PRIMARY = '#5C3BE5';
-const TEXT1   = '#FFFFFF';
-const TEXT2   = '#8B8BA7';
-const TEXT3   = '#3A3A52';
+const BG      = '#EDE4DC';
+const CARD    = '#F6F2EE';
+const BORDER  = '#CFCBC7';
+const PRIMARY = '#E8664A';
+const TEXT1   = '#2B2B2B';
+const TEXT2   = '#7A7A7A';
+const TEXT3   = '#ADADAD';
+const GREEN   = '#34C759';
 
 // ─── Shared components ────────────────────────────────────────────────────────
 
@@ -41,19 +43,25 @@ function CopyBtn({ text, small = false, onCopy }: { text: string; small?: boolea
     setTimeout(() => setCopied(false), 2000);
   }
   return (
-    <TouchableOpacity onPress={handle} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: copied ? 'rgba(52,211,153,0.1)' : '#1E1E2E' }} activeOpacity={0.7}>
-      {copied ? <Check size={12} color="#34d399" /> : <Copy size={12} color={TEXT3} />}
-      {!small && <Text style={{ color: copied ? '#34d399' : TEXT3, fontSize: 11, fontWeight: '600' }}>{copied ? 'Copied' : 'Copy'}</Text>}
+    <TouchableOpacity onPress={handle} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: copied ? 'rgba(52,199,89,0.1)' : '#F3EDE8' }} activeOpacity={0.7}>
+      {copied ? <Check size={11} color={GREEN} /> : <Copy size={11} color={TEXT2} />}
+      {!small && <Text style={{ color: copied ? GREEN : TEXT2, fontSize: 11, fontWeight: '600' }}>{copied ? 'Copied' : 'Copy'}</Text>}
     </TouchableOpacity>
   );
 }
 
 function ContentCard({ label, copyText, children, onCopy }: { label: string; copyText: string; children: React.ReactNode; onCopy?: () => void }) {
   return (
-    <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12 }}>
+    <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</Text>
-        <CopyBtn text={copyText} onCopy={onCopy} />
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <CopyBtn text={copyText} onCopy={onCopy} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(232,102,74,0.08)' }}>
+            <Edit2 size={11} color={PRIMARY} />
+            <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '600' }}>Edit</Text>
+          </View>
+        </View>
       </View>
       {children}
     </View>
@@ -85,7 +93,7 @@ function EditableTags({ items, onChange }: { items: string[]; onChange: (v: stri
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
       {safeItems.map((t, i) => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1E1E2E', borderRadius: 20, paddingLeft: 10, paddingRight: 6, paddingVertical: 4 }}>
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E8E0D8', borderRadius: 20, paddingLeft: 10, paddingRight: 6, paddingVertical: 4 }}>
           <Text style={{ color: TEXT2, fontSize: 12 }}>{t}</Text>
           <TouchableOpacity onPress={() => onChange(safeItems.filter((_, j) => j !== i))} hitSlop={6}><X size={10} color={TEXT3} /></TouchableOpacity>
         </View>
@@ -93,7 +101,7 @@ function EditableTags({ items, onChange }: { items: string[]; onChange: (v: stri
       {adding
         ? <TextInput autoFocus value={newTag} onChangeText={setNewTag} onBlur={add} onSubmitEditing={add} returnKeyType="done"
             placeholder="Add…" placeholderTextColor={TEXT3}
-            style={{ backgroundColor: '#1E1E2E', borderRadius: 20, borderWidth: 1, borderColor: PRIMARY, paddingHorizontal: 10, paddingVertical: 4, color: TEXT1, fontSize: 12, minWidth: 70 }} />
+            style={{ backgroundColor: '#E8E0D8', borderRadius: 20, borderWidth: 1, borderColor: PRIMARY, paddingHorizontal: 10, paddingVertical: 4, color: TEXT1, fontSize: 12, minWidth: 70 }} />
         : <TouchableOpacity onPress={() => setAdding(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 20, borderWidth: 1, borderColor: BORDER, borderStyle: 'dashed', paddingHorizontal: 10, paddingVertical: 4 }} activeOpacity={0.7}>
             <Plus size={10} color={TEXT3} />
             <Text style={{ color: TEXT3, fontSize: 12 }}>Add</Text>
@@ -153,6 +161,32 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
       </ScrollView>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+        {/* Score card */}
+        <View style={{ backgroundColor: CARD, borderRadius: 20, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, borderWidth: 1, borderColor: BORDER }}>
+          <View style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: PRIMARY, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: PRIMARY, fontWeight: '800', fontSize: 15 }}>92%</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 16 }}>AI Listing Ready</Text>
+            <Text style={{ color: TEXT2, fontSize: 12, marginTop: 2 }}>92% optimized for better visibility</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Sparkles size={10} color={PRIMARY} />
+                <Text style={{ color: TEXT2, fontSize: 11 }}>Tone: Professional</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Globe size={10} color={TEXT2} />
+                <Text style={{ color: TEXT2, fontSize: 11 }}>Platform: {platform.charAt(0).toUpperCase() + platform.slice(1)}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: PRIMARY }}>
+            <Sparkles size={11} color={PRIMARY} />
+            <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>Improve{'\n'}with AI</Text>
+          </View>
+        </View>
+
         {platform === 'global' && (<>
           <ContentCard label="Title" copyText={g.title} onCopy={trackCopy}><EditableText bold value={g.title} onChange={v => patchGlobal({ title: v })} /></ContentCard>
           <ContentCard label="Short Description" copyText={g.short_description} onCopy={trackCopy}><EditableText value={g.short_description} onChange={v => patchGlobal({ short_description: v })} /></ContentCard>
@@ -191,17 +225,23 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
       </ScrollView>
 
       {/* Bottom bar */}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG, borderTopWidth: 1, borderColor: BORDER }}>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG, borderTopWidth: 1, borderColor: BORDER }}>
         <TouchableOpacity onPress={() => { Clipboard.setStringAsync(copyAll()); trackCopy(); }}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
           activeOpacity={0.8}>
-          <Copy size={15} color={TEXT2} />
+          <Copy size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Copy All</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/create')}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY }}
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
           activeOpacity={0.8}>
-          <Edit2 size={15} color="#fff" />
+          <Sparkles size={14} color={TEXT2} />
+          <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/create')}
+          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY }}
+          activeOpacity={0.8}>
+          <RefreshCw size={14} color="#fff" />
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
         </TouchableOpacity>
       </View>
@@ -295,7 +335,7 @@ function AdPreviewModal({
             <X size={20} color="#fff" />
           </TouchableOpacity>
 
-          <View style={{ backgroundColor: 'rgba(92,59,229,0.88)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}>
+          <View style={{ backgroundColor: 'rgba(215,135,106,0.88)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}>
             <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{slot.label}</Text>
           </View>
 
@@ -558,7 +598,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   trackEvent({ category, event_type: 'view_variant', variant_id: slot.id, style: slot.label });
                   setPreviewSlot(slot);
                 }}
-                style={{ width: cardW, height: cardW, backgroundColor: '#1A1A2E' }}
+                style={{ width: cardW, height: cardW, backgroundColor: '#E8E0D8' }}
               >
                 {slot.status === 'generating' ? (
                   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -567,8 +607,8 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   </View>
                 ) : slot.status === 'error' ? (
                   <TouchableOpacity onPress={() => retrySlot(slot)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 }} activeOpacity={0.7}>
-                    <RefreshCw size={20} color="#f87171" />
-                    <Text style={{ color: '#f87171', fontSize: 11 }}>Failed — Tap to retry</Text>
+                    <RefreshCw size={20} color="#D46A5A" />
+                    <Text style={{ color: '#D46A5A', fontSize: 11 }}>Failed — Tap to retry</Text>
                   </TouchableOpacity>
                 ) : slot.imageUrl ? (
                   <>
@@ -583,11 +623,11 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                       </View>
                     )}
                     {isBest && (
-                      <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(92,59,229,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3 }}>
+                      <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3 }}>
                         <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>★ BEST</Text>
                       </View>
                     )}
-                    <View style={{ position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(92,59,229,0.85)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
+                    <View style={{ position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.85)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
                       <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>TAP TO PREVIEW</Text>
                     </View>
                   </>
@@ -614,7 +654,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                       }
                       setFavorites(next);
                     }}
-                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: isFav ? 'rgba(239,68,68,0.12)' : '#1A1A2E', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: isFav ? 'rgba(239,68,68,0.12)' : '#E8E0D8', alignItems: 'center', justifyContent: 'center' }}
                     activeOpacity={0.7}>
                     <Heart size={13} color={isFav ? '#ef4444' : TEXT3} fill={isFav ? '#ef4444' : 'none'} />
                   </TouchableOpacity>
@@ -632,7 +672,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                       trackEvent({ category, event_type: 'download_image', variant_id: slot.id, style: slot.label });
                       Alert.alert('Saved!', 'Image saved to your photo library.');
                     }}
-                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
+                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
                     <Save size={13} color={TEXT3} />
                   </TouchableOpacity>
                   {/* Share */}
@@ -656,7 +696,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                         await Sharing.shareAsync(uri, { mimeType: 'image/png' });
                       }
                     }}
-                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
+                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
                     <Share2 size={13} color={TEXT3} />
                   </TouchableOpacity>
                   {/* A/B Compare */}
@@ -676,7 +716,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                     }}
                     style={{
                       width: 28, height: 28, borderRadius: 8,
-                      backgroundColor: isInCompare ? 'rgba(92,59,229,0.18)' : '#1A1A2E',
+                      backgroundColor: isInCompare ? 'rgba(215,135,106,0.18)' : '#E8E0D8',
                       alignItems: 'center', justifyContent: 'center',
                       borderWidth: isInCompare ? 1 : 0, borderColor: PRIMARY,
                     }} activeOpacity={0.7}>
@@ -697,7 +737,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
             {styleImages.filter(s => s.status === 'done').map(set => (
               <View key={set.presetId} style={{ marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <View style={{ backgroundColor: 'rgba(92,59,229,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <View style={{ backgroundColor: 'rgba(215,135,106,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
                     <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '700' }}>{set.presetName}</Text>
                   </View>
                 </View>
@@ -710,7 +750,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                       style={{ flex: 1, aspectRatio: 1, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: BORDER }}
                     >
                       <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                      <View style={{ position: 'absolute', bottom: 5, right: 5, backgroundColor: 'rgba(92,59,229,0.85)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <View style={{ position: 'absolute', bottom: 5, right: 5, backgroundColor: 'rgba(215,135,106,0.85)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                         <Text style={{ color: '#fff', fontSize: 8, fontWeight: '700' }}>TAP TO PREVIEW</Text>
                       </View>
                     </TouchableOpacity>
@@ -723,7 +763,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
 
         {/* ── Intelligence Insights ────────────────────────────────────────── */}
         {insights && insights.top_recommendations.length > 0 && (
-          <View style={{ marginTop: 24, backgroundColor: '#131320', borderRadius: 16, borderWidth: 1, borderColor: '#1A1A28', padding: 14 }}>
+          <View style={{ marginTop: 24, backgroundColor: '#F6F2EE', borderRadius: 16, borderWidth: 1, borderColor: '#CFCBC7', padding: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Text style={{ fontSize: 10, color: PRIMARY, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>🔥 Top Styles · {category}</Text>
             </View>
@@ -735,10 +775,10 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 10 }}>
                   <View style={{
-                    backgroundColor: rec.confidence === 'High' ? 'rgba(52,211,153,0.15)' : rec.confidence === 'Medium' ? 'rgba(251,191,36,0.15)' : 'rgba(100,100,120,0.2)',
+                    backgroundColor: rec.confidence === 'High' ? 'rgba(126,143,90,0.15)' : rec.confidence === 'Medium' ? 'rgba(251,191,36,0.15)' : 'rgba(100,100,120,0.2)',
                     borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
                   }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: rec.confidence === 'High' ? '#34d399' : rec.confidence === 'Medium' ? '#fbbf24' : TEXT2 }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: rec.confidence === 'High' ? '#7E8F5A' : rec.confidence === 'Medium' ? '#fbbf24' : TEXT2 }}>
                       {rec.confidence.toUpperCase()}
                     </Text>
                   </View>
@@ -747,8 +787,8 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
               </View>
             ))}
             {insights.best_variant && (
-              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: '#1A1A28', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-                <View style={{ backgroundColor: 'rgba(92,59,229,0.18)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginTop: 1 }}>
+              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: '#CFCBC7', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <View style={{ backgroundColor: 'rgba(215,135,106,0.18)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginTop: 1 }}>
                   <Text style={{ color: PRIMARY, fontSize: 9, fontWeight: '800' }}>★ BEST</Text>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -781,12 +821,12 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
               return (
                 <View key={preset.id} style={{
                   width: 150, borderRadius: 18, backgroundColor: CARD,
-                  borderWidth: 1.5, borderColor: isDone ? 'rgba(52,211,153,0.4)' : isActive ? PRIMARY : BORDER,
+                  borderWidth: 1.5, borderColor: isDone ? 'rgba(126,143,90,0.4)' : isActive ? PRIMARY : BORDER,
                   overflow: 'hidden',
                 }}>
                   {/* Preview strip */}
                   <View style={{
-                    height: 72, backgroundColor: isDone ? 'rgba(52,211,153,0.07)' : 'rgba(92,59,229,0.08)',
+                    height: 72, backgroundColor: isDone ? 'rgba(126,143,90,0.07)' : 'rgba(215,135,106,0.08)',
                     alignItems: 'center', justifyContent: 'center',
                   }}>
                     <Text style={{ fontSize: 32 }}>{preset.preview}</Text>
@@ -796,8 +836,8 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   <View style={{ padding: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: TEXT1, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{preset.name}</Text>
-                      <View style={{ backgroundColor: isDone ? 'rgba(52,211,153,0.15)' : '#1E1E2E', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ color: isDone ? '#34d399' : TEXT3, fontSize: 9, fontWeight: '700' }}>{isDone ? '✓ Done' : '1 credit'}</Text>
+                      <View style={{ backgroundColor: isDone ? 'rgba(126,143,90,0.15)' : '#E8E0D8', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ color: isDone ? '#7E8F5A' : TEXT3, fontSize: 9, fontWeight: '700' }}>{isDone ? '✓ Done' : '1 credit'}</Text>
                       </View>
                     </View>
                     <Text style={{ color: TEXT2, fontSize: 11, lineHeight: 16, marginBottom: 10 }} numberOfLines={2}>{preset.description}</Text>
@@ -808,19 +848,19 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                       style={{
                         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
                         paddingVertical: 9, borderRadius: 10,
-                        backgroundColor: isDone ? 'rgba(52,211,153,0.12)' : isError ? 'rgba(248,113,113,0.12)' : 'rgba(92,59,229,0.15)',
+                        backgroundColor: isDone ? 'rgba(126,143,90,0.12)' : isError ? 'rgba(248,113,113,0.12)' : 'rgba(215,135,106,0.15)',
                         opacity: generatingPreset && !isActive ? 0.45 : 1,
                       }}>
                       {isActive
                         ? <ActivityIndicator size="small" color={PRIMARY} />
                         : isDone
-                          ? <Check size={12} color="#34d399" />
+                          ? <Check size={12} color="#7E8F5A" />
                           : isError
-                            ? <RefreshCw size={12} color="#f87171" />
+                            ? <RefreshCw size={12} color="#D46A5A" />
                             : <Zap size={12} color={PRIMARY} />}
                       <Text style={{
                         fontSize: 12, fontWeight: '700',
-                        color: isDone ? '#34d399' : isError ? '#f87171' : PRIMARY,
+                        color: isDone ? '#7E8F5A' : isError ? '#D46A5A' : PRIMARY,
                       }}>
                         {isActive ? 'Generating…' : isDone ? 'Regenerate' : isError ? 'Retry' : 'Generate'}
                       </Text>
@@ -834,21 +874,27 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
       </ScrollView>
 
       {/* Bottom bar */}
-      <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG, borderTopWidth: 1, borderColor: BORDER }}>
+      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG, borderTopWidth: 1, borderColor: BORDER }}>
         <TouchableOpacity onPress={() => { trackEvent({ category, event_type: 'regenerate_variant' }); router.push('/create'); }}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
           activeOpacity={0.8}>
-          <RefreshCw size={15} color={TEXT2} />
+          <RefreshCw size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
+          activeOpacity={0.8}>
+          <Sparkles size={14} color={TEXT2} />
+          <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={downloadAll}
           disabled={downloading}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY, opacity: downloading ? 0.6 : 1 }}
+          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY, opacity: downloading ? 0.6 : 1 }}
           activeOpacity={0.8}>
           {downloading
             ? <ActivityIndicator size="small" color="#fff" />
-            : <Download size={15} color="#fff" />}
+            : <Download size={14} color="#fff" />}
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{downloading ? 'Saving…' : 'Download All'}</Text>
         </TouchableOpacity>
       </View>
@@ -858,41 +904,208 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
 
 // ─── Tab: Social ──────────────────────────────────────────────────────────────
 
+const SOCIAL_PLATFORM_PILLS = [
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'facebook',  label: 'Facebook' },
+  { id: 'tiktok',    label: 'TikTok' },
+  { id: 'all',       label: 'All Platforms' },
+] as const;
+type SocialPlatformPill = typeof SOCIAL_PLATFORM_PILLS[number]['id'];
+
 function SocialTab({ listing, category }: { listing: ListingResult; category: string }) {
   const { instagram, tiktok } = listing;
+  const { variations, pickedImage } = useAdStore();
+  const [platform, setPlatform] = useState<SocialPlatformPill>('instagram');
   const trackCopy = () => trackEvent({ category, event_type: 'copy_listing', platform: 'social' });
+
+  const igTags  = instagram.hashtags ?? [];
+  const ttTags  = tiktok.hashtags ?? [];
+  const allTags = [...igTags, ...ttTags].filter((h, i, a) => a.indexOf(h) === i);
+  const displayTags = platform === 'tiktok' ? ttTags : platform === 'all' ? allTags : igTags;
+
+  const postVariations = [
+    { num: 1, imageUrl: variations[0]?.imageUrl, caption: instagram.caption, tags: igTags.slice(0, 3).join(' ') },
+    { num: 2, imageUrl: variations[1]?.imageUrl, caption: tiktok.hook, tags: ttTags.slice(0, 3).join(' ') },
+    { num: 3, imageUrl: variations[2]?.imageUrl, caption: tiktok.caption, tags: igTags.slice(3, 6).join(' ') },
+  ];
+
+  const hookIdeas = [
+    { emoji: '✨', title: tiktok.hook || 'Your perfect partner for every journey.', platforms: 'Reels, TikTok' },
+    { emoji: '✨', title: (instagram.caption.split('.')[0] || 'Small. Big vibes.') + '.', platforms: 'Instagram, Facebook' },
+    { emoji: '✨', title: (tiktok.caption.split('.')[0] || 'Make every day count') + '.', platforms: 'Instagram, TikTok' },
+  ];
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Instagram</Text>
-      <ContentCard label="Caption" copyText={instagram.caption} onCopy={trackCopy}>
-        <Text style={{ color: TEXT2, fontSize: 13, lineHeight: 21 }}>{instagram.caption}</Text>
-      </ContentCard>
-      <ContentCard label="Hashtags" copyText={instagram.hashtags.join(' ')} onCopy={trackCopy}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {instagram.hashtags.map((h, i) => (
-            <View key={i} style={{ backgroundColor: '#1E1E2E', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
-              <Text style={{ color: '#818cf8', fontSize: 12 }}>{h}</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+
+        {/* Hero stats card */}
+        <View style={{ margin: 16, marginBottom: 12, backgroundColor: CARD, borderRadius: 20, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 18, marginBottom: 4 }}>AI Social Content Ready</Text>
+              <Text style={{ color: TEXT2, fontSize: 13, marginBottom: 16 }}>Engaging posts crafted for more reach</Text>
+              <View style={{ flexDirection: 'row', gap: 20 }}>
+                <View>
+                  <Text style={{ color: PRIMARY, fontWeight: '800', fontSize: 18 }}>96%</Text>
+                  <Text style={{ color: TEXT3, fontSize: 10, lineHeight: 14 }}>Engagement{'\n'}Score</Text>
+                </View>
+                <View>
+                  <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 18 }}>{postVariations.length}</Text>
+                  <Text style={{ color: TEXT3, fontSize: 10, lineHeight: 14 }}>Post{'\n'}Variations</Text>
+                </View>
+                <View>
+                  <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 18 }}>3</Text>
+                  <Text style={{ color: TEXT3, fontSize: 10, lineHeight: 14 }}>Platforms</Text>
+                </View>
+              </View>
             </View>
-          ))}
-        </View>
-      </ContentCard>
-      <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 8, marginBottom: 12 }}>TikTok</Text>
-      <ContentCard label="Hook" copyText={tiktok.hook} onCopy={trackCopy}>
-        <Text style={{ color: TEXT1, fontSize: 14, fontWeight: '600', lineHeight: 22 }}>{tiktok.hook}</Text>
-      </ContentCard>
-      <ContentCard label="Caption" copyText={tiktok.caption} onCopy={trackCopy}>
-        <Text style={{ color: TEXT2, fontSize: 13, lineHeight: 21 }}>{tiktok.caption}</Text>
-      </ContentCard>
-      <ContentCard label="Hashtags" copyText={tiktok.hashtags.join(' ')} onCopy={trackCopy}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {tiktok.hashtags.map((h, i) => (
-            <View key={i} style={{ backgroundColor: '#1E1E2E', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
-              <Text style={{ color: '#22d3ee', fontSize: 12 }}>{h}</Text>
+            <View style={{ alignItems: 'flex-end', gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#E1306C', alignItems: 'center', justifyContent: 'center' }}>
+                  <SocialIcon size={18} color="#fff" />
+                </View>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
+                  <Music size={18} color="#fff" />
+                </View>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#1877F2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Globe size={18} color="#fff" />
+                </View>
+              </View>
+              {(pickedImage?.uri || variations[0]?.imageUrl) ? (
+                <Image
+                  source={{ uri: pickedImage?.uri ?? variations[0]?.imageUrl }}
+                  style={{ width: 76, height: 76, borderRadius: 14 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{ width: 76, height: 76, borderRadius: 14, backgroundColor: '#F3EDE8', alignItems: 'center', justifyContent: 'center' }}>
+                  <ImageIcon size={24} color={TEXT3} />
+                </View>
+              )}
             </View>
-          ))}
+          </View>
         </View>
-      </ContentCard>
-    </ScrollView>
+
+        {/* Platform selector */}
+        <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, paddingHorizontal: 16, marginBottom: 10 }}>CHOOSE PLATFORM</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+          {SOCIAL_PLATFORM_PILLS.map(p => {
+            const isActive = platform === p.id;
+            return (
+              <TouchableOpacity key={p.id} onPress={() => setPlatform(p.id)} activeOpacity={0.8}
+                style={{ paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, backgroundColor: isActive ? PRIMARY : CARD, borderWidth: 1, borderColor: isActive ? PRIMARY : BORDER }}>
+                <Text style={{ color: isActive ? '#fff' : TEXT2, fontSize: 13, fontWeight: '600' }}>{p.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Post variations */}
+        <View style={{ marginBottom: 28 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 }}>
+            <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>POST VARIATIONS</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={{ color: PRIMARY, fontSize: 12, fontWeight: '700' }}>+ Generate More</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+            {postVariations.map(pv => (
+              <View key={pv.num} style={{ width: 162, backgroundColor: CARD, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: BORDER, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}>
+                <View style={{ height: 120, backgroundColor: '#F3EDE8', position: 'relative' }}>
+                  {pv.imageUrl ? (
+                    <Image source={{ uri: pv.imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon size={24} color={TEXT3} />
+                    </View>
+                  )}
+                  <View style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 11, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{pv.num}</Text>
+                  </View>
+                </View>
+                <View style={{ padding: 10 }}>
+                  <Text style={{ color: TEXT1, fontSize: 12, lineHeight: 17, marginBottom: 5 }} numberOfLines={3}>{pv.caption}</Text>
+                  <Text style={{ color: PRIMARY, fontSize: 10, marginBottom: 8 }} numberOfLines={1}>{pv.tags}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity onPress={() => { Clipboard.setStringAsync(pv.caption + '\n' + pv.tags); trackCopy(); }}
+                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 7, borderRadius: 8, backgroundColor: '#F3EDE8' }} activeOpacity={0.7}>
+                      <Copy size={11} color={TEXT2} />
+                      <Text style={{ color: TEXT2, fontSize: 11, fontWeight: '600' }}>Copy</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(232,102,74,0.08)' }} activeOpacity={0.7}>
+                      <Edit2 size={11} color={PRIMARY} />
+                      <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Hashtags */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 28 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>HASHTAGS</Text>
+            <TouchableOpacity onPress={() => { Clipboard.setStringAsync(displayTags.join(' ')); trackCopy(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} activeOpacity={0.7}>
+              <Copy size={12} color={TEXT2} />
+              <Text style={{ color: TEXT2, fontSize: 12, fontWeight: '600' }}>Copy All</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {displayTags.map((h, i) => (
+              <View key={i} style={{ backgroundColor: '#F3EDE8', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 }}>
+                <Text style={{ color: TEXT2, fontSize: 12 }}>{h}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Post hook ideas */}
+        <View style={{ paddingHorizontal: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>POST HOOK IDEAS</Text>
+            <TouchableOpacity onPress={() => { Clipboard.setStringAsync(hookIdeas.map(h => h.title).join('\n')); trackCopy(); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} activeOpacity={0.7}>
+              <Copy size={12} color={TEXT2} />
+              <Text style={{ color: TEXT2, fontSize: 12, fontWeight: '600' }}>Copy All</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {hookIdeas.map((h, i) => (
+              <View key={i} style={{ flex: 1, backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 12 }}>
+                <Text style={{ fontSize: 16, marginBottom: 6 }}>{h.emoji}</Text>
+                <Text style={{ color: TEXT1, fontSize: 12, fontWeight: '600', lineHeight: 16, marginBottom: 8 }} numberOfLines={4}>{h.title}</Text>
+                <Text style={{ color: TEXT3, fontSize: 10 }}>Use for: {h.platforms}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+      </ScrollView>
+
+      {/* Bottom bar */}
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG, borderTopWidth: 1, borderColor: BORDER }}>
+        <TouchableOpacity onPress={() => { Clipboard.setStringAsync(displayTags.join(' ')); trackCopy(); }}
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
+          activeOpacity={0.8}>
+          <Copy size={14} color={TEXT2} />
+          <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Copy All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
+          activeOpacity={0.8}>
+          <Sparkles size={14} color={TEXT2} />
+          <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/create')}
+          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY }}
+          activeOpacity={0.8}>
+          <RefreshCw size={14} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
@@ -931,7 +1144,7 @@ function ExportTab({ variations, listing, category }: { variations: any[]; listi
 
       {error && (
         <View style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)', padding: 12, marginBottom: 16 }}>
-          <Text style={{ color: '#f87171', fontSize: 13 }}>{error}</Text>
+          <Text style={{ color: '#D46A5A', fontSize: 13 }}>{error}</Text>
         </View>
       )}
 
@@ -1000,37 +1213,36 @@ export default function KitScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: BORDER, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: BORDER, gap: 12, backgroundColor: CARD }}>
         <TouchableOpacity onPress={() => router.back()}
-          style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: BG, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <ArrowLeft size={17} color={TEXT2} />
         </TouchableOpacity>
 
-        {/* Product info */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
           {pickedImage
-            ? <Image source={{ uri: pickedImage.uri }} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: CARD }} />
-            : <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: CARD, alignItems: 'center', justifyContent: 'center' }}><ImageIcon size={18} color={TEXT3} /></View>
+            ? <Image source={{ uri: pickedImage.uri }} style={{ width: 40, height: 40, borderRadius: 12 }} resizeMode="cover" />
+            : <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#F3EDE8', alignItems: 'center', justifyContent: 'center' }}><ImageIcon size={18} color={TEXT3} /></View>
           }
           <View style={{ flex: 1 }}>
-            <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{productName}</Text>
-            <Text style={{ color: TEXT3, fontSize: 11, marginTop: 1 }}>{productCat}</Text>
+            <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 15 }} numberOfLines={1}>{productName}</Text>
+            <Text style={{ color: TEXT2, fontSize: 12, marginTop: 1 }}>{productCat}</Text>
           </View>
         </View>
 
         <TouchableOpacity onPress={() => router.push('/publish')}
-          style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: BG, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Globe size={15} color={TEXT2} />
         </TouchableOpacity>
       </View>
 
       {/* Sticky tab bar */}
-      <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: BORDER }}>
+      <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: BORDER, backgroundColor: CARD }}>
         {MAIN_TABS.map(({ id, label, Icon }) => (
           <TouchableOpacity key={id} onPress={() => setActiveTab(id)} activeOpacity={0.7}
             style={{ flex: 1, alignItems: 'center', paddingVertical: 12, gap: 4, borderBottomWidth: 2, borderBottomColor: activeTab === id ? PRIMARY : 'transparent' }}>
             <Icon size={16} color={activeTab === id ? PRIMARY : TEXT3} />
-            <Text style={{ fontSize: 11, fontWeight: '700', color: activeTab === id ? PRIMARY : TEXT3 }}>{label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: activeTab === id ? PRIMARY : TEXT3 }}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>

@@ -16,13 +16,13 @@ import {
   type KitEntry,
 } from '../../src/services/historyService';
 
-const BG      = '#0B0B0F';
-const CARD    = '#131320';
-const BORDER  = '#1A1A28';
-const PRIMARY = '#5C3BE5';
-const TEXT1   = '#FFFFFF';
-const TEXT2   = '#8B8BA7';
-const TEXT3   = '#3A3A52';
+const BG      = '#EDE4DC';
+const CARD    = '#F6F2EE';
+const BORDER  = '#CFCBC7';
+const PRIMARY = '#E8664A';
+const TEXT1   = '#2B2B2B';
+const TEXT2   = '#7A7A7A';
+const TEXT3   = '#ADADAD';
 
 const GOAL_LABELS: Record<string, string> = {
   full: 'Full Kit', images: 'Images', listing: 'Listing', social: 'Social',
@@ -187,7 +187,7 @@ export default function ProductsScreen() {
                   resizeMode="cover"
                 />
               ) : (
-                <View style={{ width: 88, height: 88, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 88, height: 88, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }}>
                   <Package size={28} color={TEXT3} />
                 </View>
               )}
@@ -207,7 +207,7 @@ export default function ProductsScreen() {
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={{ backgroundColor: 'rgba(92,59,229,0.15)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <View style={{ backgroundColor: 'rgba(215,135,106,0.15)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
                     <Text style={{ color: PRIMARY, fontSize: 10, fontWeight: '700' }}>{GOAL_LABELS[kit.goal] ?? kit.goal}</Text>
                   </View>
                   <Text style={{ color: TEXT3, fontSize: 11 }}>{timeAgo(kit.createdAt)}</Text>

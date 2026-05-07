@@ -6,11 +6,18 @@ import type { QuickAnalysis } from '../services/analyzeService';
 import type { KitFullData } from '../services/historyService';
 
 export type GenerationGoal = 'full' | 'images' | 'listing' | 'social';
+export type MediaType = 'photo' | 'video';
 
 export interface PickedImage {
   base64: string;
   mimeType: string;
   uri: string;
+}
+
+export interface VideoAsset {
+  uri: string;
+  mimeType: string;
+  name?: string;
 }
 
 export interface StyleImageSet {
@@ -22,28 +29,36 @@ export interface StyleImageSet {
 
 interface AdStore {
   pickedImage: PickedImage | null;
+  angleImages: PickedImage[];
+  videoAsset: VideoAsset | null;
+  mediaType: MediaType;
+  productText: string;
+  voiceTranscript: string;
   selectedCategory: CategoryType;
   variations: AdVariation[];
   isGenerating: boolean;
 
-  // Listing
   listingResult: ListingResult | null;
   listingLanguage: Language;
   listingTone: Tone;
   listingLength: ListingLength;
 
-  // Scoring
   imageScores: Record<string, VariationScore> | null;
   overallBestType: string | null;
 
-  // Generation goal
   goal: GenerationGoal;
 
-  // Block 3: analysis + style presets
   productAnalysis: QuickAnalysis | null;
   styleImages: StyleImageSet[];
 
   setPickedImage: (img: PickedImage | null) => void;
+  setAngleImages: (imgs: PickedImage[]) => void;
+  addAngleImage: (img: PickedImage) => void;
+  removeAngleImage: (index: number) => void;
+  setVideoAsset: (v: VideoAsset | null) => void;
+  setMediaType: (t: MediaType) => void;
+  setProductText: (t: string) => void;
+  setVoiceTranscript: (t: string) => void;
   setCategory: (cat: CategoryType) => void;
   setVariations: (v: AdVariation[]) => void;
   updateVariation: (id: string, patch: Partial<AdVariation>) => void;
@@ -63,6 +78,11 @@ interface AdStore {
 
 export const useAdStore = create<AdStore>((set) => ({
   pickedImage: null,
+  angleImages: [],
+  videoAsset: null,
+  mediaType: 'photo',
+  productText: '',
+  voiceTranscript: '',
   selectedCategory: 'General',
   variations: [],
   isGenerating: false,
@@ -76,29 +96,32 @@ export const useAdStore = create<AdStore>((set) => ({
   productAnalysis: null,
   styleImages: [],
 
-  setPickedImage: (img) => set({ pickedImage: img }),
-  setCategory: (cat) => set({ selectedCategory: cat }),
-  setVariations: (v) => set({ variations: v }),
+  setPickedImage:     (img)  => set({ pickedImage: img }),
+  setAngleImages:     (imgs) => set({ angleImages: imgs }),
+  addAngleImage:      (img)  => set(s => ({ angleImages: [...s.angleImages, img] })),
+  removeAngleImage:   (idx)  => set(s => ({ angleImages: s.angleImages.filter((_, i) => i !== idx) })),
+  setVideoAsset:      (v)    => set({ videoAsset: v }),
+  setMediaType:       (t)    => set({ mediaType: t }),
+  setProductText:     (t)    => set({ productText: t }),
+  setVoiceTranscript: (t)    => set({ voiceTranscript: t }),
+  setCategory:        (cat)  => set({ selectedCategory: cat }),
+  setVariations:      (v)    => set({ variations: v }),
   updateVariation: (id, patch) =>
-    set((state) => ({
-      variations: state.variations.map((v) => (v.id === id ? { ...v, ...patch } : v)),
-    })),
-  setIsGenerating: (v) => set({ isGenerating: v }),
+    set(s => ({ variations: s.variations.map(v => v.id === id ? { ...v, ...patch } : v) })),
+  setIsGenerating:  (v) => set({ isGenerating: v }),
   setListingResult: (r) => set({ listingResult: r }),
   setListingLanguage: (l) => set({ listingLanguage: l }),
-  setListingTone: (t) => set({ listingTone: t }),
-  setListingLength: (l) => set({ listingLength: l }),
+  setListingTone:     (t) => set({ listingTone: t }),
+  setListingLength:   (l) => set({ listingLength: l }),
   setScoringResult: (scores, overallBest) =>
     set({ imageScores: scores, overallBestType: overallBest }),
   setGoal: (g) => set({ goal: g }),
   setProductAnalysis: (a) => set({ productAnalysis: a }),
   addStyleImageSet: (s) =>
-    set((state) => ({ styleImages: [...state.styleImages, s] })),
+    set(state => ({ styleImages: [...state.styleImages, s] })),
   updateStyleImageSet: (presetId, patch) =>
-    set((state) => ({
-      styleImages: state.styleImages.map((s) =>
-        s.presetId === presetId ? { ...s, ...patch } : s,
-      ),
+    set(state => ({
+      styleImages: state.styleImages.map(s => s.presetId === presetId ? { ...s, ...patch } : s),
     })),
   restoreKit: (data) =>
     set({
@@ -114,10 +137,19 @@ export const useAdStore = create<AdStore>((set) => ({
       imageScores: null,
       overallBestType: null,
       styleImages: [],
+      angleImages: [],
+      videoAsset: null,
+      productText: '',
+      voiceTranscript: '',
     }),
   reset: () =>
     set({
       pickedImage: null,
+      angleImages: [],
+      videoAsset: null,
+      mediaType: 'photo',
+      productText: '',
+      voiceTranscript: '',
       selectedCategory: 'General',
       variations: [],
       isGenerating: false,

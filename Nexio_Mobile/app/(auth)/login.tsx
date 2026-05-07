@@ -55,13 +55,12 @@ function Field({
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor="#52525b"
+          placeholderTextColor="#ADADAD"
           secureTextEntry={secure && !show}
           keyboardType={keyboard ?? 'default'}
           autoCapitalize={autoCapitalize ?? 'sentences'}
           autoCorrect={false}
-          className="bg-zinc-800 border border-zinc-700 rounded-xl text-white text-sm"
-          style={{ paddingHorizontal: 16, paddingVertical: 14, paddingRight: secure ? 48 : 16 }}
+          style={{ paddingHorizontal: 16, paddingVertical: 14, paddingRight: secure ? 48 : 16, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, color: '#2B2B2B', fontSize: 14 }}
         />
         {secure && (
           <TouchableOpacity
@@ -69,8 +68,8 @@ function Field({
             style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
           >
             {show
-              ? <EyeOff size={16} color="#71717a" />
-              : <Eye size={16} color="#71717a" />}
+              ? <EyeOff size={16} color="#ADADAD" />
+              : <Eye size={16} color="#ADADAD" />}
           </TouchableOpacity>
         )}
       </View>
@@ -96,8 +95,7 @@ function PrimaryBtn({
       onPress={onPress}
       disabled={loading}
       activeOpacity={0.8}
-      className="bg-indigo-600 rounded-xl items-center justify-center flex-row"
-      style={{ paddingVertical: 15, gap: 8, opacity: loading ? 0.7 : 1 }}
+      style={{ paddingVertical: 15, gap: 8, opacity: loading ? 0.7 : 1, backgroundColor: '#E8664A', borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
     >
       {loading
         ? <ActivityIndicator size="small" color="#fff" />
@@ -116,10 +114,9 @@ function SecondaryBtn({ label, onPress }: { label: string; onPress: () => void }
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className="bg-zinc-800 border border-zinc-700 rounded-xl items-center justify-center"
-      style={{ paddingVertical: 14 }}
+      style={{ paddingVertical: 14, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text className="text-zinc-200 font-medium text-sm">{label}</Text>
+      <Text style={{ color: '#2B2B2B', fontWeight: '500', fontSize: 14 }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -131,10 +128,9 @@ function OAuthBtn({ label, onPress }: { label: string; onPress: () => void }) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl items-center justify-center"
-      style={{ paddingVertical: 13 }}
+      style={{ paddingVertical: 13, flex: 1, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text className="text-zinc-200 font-medium text-sm">{label}</Text>
+      <Text style={{ color: '#2B2B2B', fontWeight: '500', fontSize: 14 }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -160,9 +156,9 @@ function DevPanel({ children }: { children: React.ReactNode }) {
 function Divider() {
   return (
     <View className="flex-row items-center my-4" style={{ gap: 10 }}>
-      <View className="flex-1 bg-zinc-800" style={{ height: 1 }} />
-      <Text className="text-zinc-600 text-xs uppercase tracking-widest">or</Text>
-      <View className="flex-1 bg-zinc-800" style={{ height: 1 }} />
+      <View style={{ flex: 1, backgroundColor: '#CFCBC7', height: 1 }} />
+      <Text style={{ color: '#ADADAD', fontSize: 10, textTransform: 'uppercase', letterSpacing: 2 }}>or</Text>
+      <View style={{ flex: 1, backgroundColor: '#CFCBC7', height: 1 }} />
     </View>
   );
 }
@@ -172,8 +168,8 @@ function Divider() {
 function BackLink({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity onPress={onPress} className="flex-row items-center mb-6" style={{ gap: 6 }}>
-      <ArrowLeft size={14} color="#71717a" />
-      <Text className="text-zinc-500 text-xs">Back to sign in</Text>
+      <ArrowLeft size={14} color="#ADADAD" />
+      <Text style={{ color: '#7A7A7A', fontSize: 12 }}>Back to sign in</Text>
     </TouchableOpacity>
   );
 }
@@ -260,7 +256,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#09090b' }}
+      style={{ flex: 1, backgroundColor: '#EDE4DC' }}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
@@ -269,20 +265,20 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View className="items-center mb-10">
-          <View className="w-12 h-12 rounded-2xl bg-indigo-600 items-center justify-center mb-3" style={{ shadowColor: '#4f46e5', shadowOpacity: 0.4, shadowRadius: 16 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#E8664A', alignItems: 'center', justifyContent: 'center', marginBottom: 12, shadowColor: '#E8664A', shadowOpacity: 0.4, shadowRadius: 16 }}>
             <Sparkles size={22} color="#fff" />
           </View>
-          <Text className="text-white text-2xl font-bold tracking-tight">
-            Ad<Text className="text-indigo-400">Genius</Text>
+          <Text style={{ color: '#2B2B2B', fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>
+            Ad<Text style={{ color: '#8A9A6E' }}>Genius</Text>
           </Text>
-          <Text className="text-zinc-500 text-xs mt-1">AI Product Catalog Generator</Text>
+          <Text style={{ color: '#7A7A7A', fontSize: 12, marginTop: 4 }}>AI Product Catalog Generator</Text>
         </View>
 
         {/* ── Sign In ────────────────────────────────────────────── */}
         {view === 'signin' && (
           <View>
-            <Text className="text-white text-xl font-semibold mb-1">Welcome back</Text>
-            <Text className="text-zinc-500 text-sm mb-6">Sign in to your account</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 4 }}>Welcome back</Text>
+            <Text style={{ color: '#7A7A7A', fontSize: 14, marginBottom: 24 }}>Sign in to your account</Text>
 
             <View className="flex-row mb-4" style={{ gap: 10 }}>
               <OAuthBtn label="🇬 Google" onPress={() => signInWithOAuth('google')} />
@@ -295,43 +291,43 @@ export default function LoginScreen() {
             <Field label="Password" value={password} onChange={setPassword} placeholder="••••••••" secure />
 
             <TouchableOpacity onPress={() => go('forgot')} className="items-end mb-5 -mt-1">
-              <Text className="text-indigo-400 text-xs">Forgot password?</Text>
+              <Text style={{ color: '#E8664A', fontSize: 12 }}>Forgot password?</Text>
             </TouchableOpacity>
 
-            {!!error && <Text className="text-red-400 text-sm mb-4">{error}</Text>}
-            {!!info && <Text className="text-emerald-400 text-sm mb-4">{info}</Text>}
+            {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
+            {!!info && <Text style={{ color: '#7E8F5A', fontSize: 14, marginBottom: 16 }}>{info}</Text>}
 
             <PrimaryBtn label="Sign In" onPress={handleSignIn} loading={loading} />
 
             <TouchableOpacity onPress={() => go('magic')} className="items-center mt-4">
-              <Text className="text-zinc-500 text-xs">
+              <Text style={{ color: '#7A7A7A', fontSize: 12 }}>
                 <Text className="text-indigo-400">⚡ Use magic link</Text> instead
               </Text>
             </TouchableOpacity>
 
             <View className="flex-row justify-center mt-5">
-              <Text className="text-zinc-600 text-xs">No account? </Text>
+              <Text style={{ color: '#ADADAD', fontSize: 12 }}>No account? </Text>
               <TouchableOpacity onPress={() => go('signup')}>
                 <Text className="text-indigo-400 text-xs font-medium">Create one</Text>
               </TouchableOpacity>
             </View>
 
             {/* Demo credentials */}
-            <View className="mt-6 bg-zinc-800/60 border border-zinc-700/50 rounded-xl p-4">
-              <Text className="text-zinc-600 text-xs font-bold uppercase tracking-widest mb-3">Demo accounts</Text>
+            <View style={{ marginTop: 24, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, padding: 16 }}>
+              <Text style={{ color: '#ADADAD', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Demo accounts</Text>
               <TouchableOpacity
                 onPress={() => { setEmail('demo@nexio.com'); setPassword('demo1234'); }}
-                className="mb-2"
+                style={{ marginBottom: 8 }}
               >
-                <Text className="text-zinc-500 text-xs font-mono">demo@nexio.com / demo1234
-                  <Text className="text-zinc-700"> · user</Text>
+                <Text style={{ color: '#7A7A7A', fontSize: 12, fontFamily: 'monospace' }}>demo@nexio.com / demo1234
+                  <Text style={{ color: '#ADADAD' }}> · user</Text>
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { setEmail('admin@nexio.com'); setPassword('admin1234'); }}
               >
-                <Text className="text-zinc-500 text-xs font-mono">admin@nexio.com / admin1234
-                  <Text className="text-zinc-700"> · admin</Text>
+                <Text style={{ color: '#7A7A7A', fontSize: 12, fontFamily: 'monospace' }}>admin@nexio.com / admin1234
+                  <Text style={{ color: '#ADADAD' }}> · admin</Text>
                 </Text>
               </TouchableOpacity>
             </View>
@@ -342,19 +338,19 @@ export default function LoginScreen() {
         {view === 'signup' && (
           <View>
             <BackLink onPress={() => go('signin')} />
-            <Text className="text-white text-xl font-semibold mb-1">Create account</Text>
-            <Text className="text-zinc-500 text-sm mb-6">Start generating catalog ads</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 4 }}>Create account</Text>
+            <Text style={{ color: '#7A7A7A', fontSize: 14, marginBottom: 24 }}>Start generating catalog ads</Text>
 
             <Field label="Name (optional)" value={name} onChange={setName} placeholder="Your name" autoCapitalize="words" />
             <Field label="Email" value={email} onChange={setEmail} placeholder="you@example.com" keyboard="email-address" autoCapitalize="none" />
             <Field label="Password" value={password} onChange={setPassword} placeholder="Min. 8 characters" secure />
             <Field label="Confirm password" value={confirm} onChange={setConfirm} placeholder="••••••••" secure />
 
-            {!!error && <Text className="text-red-400 text-sm mb-4">{error}</Text>}
+            {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
             <PrimaryBtn label="Create Account" onPress={handleSignUp} loading={loading} />
 
-            <Text className="text-zinc-600 text-xs text-center mt-4">
+            <Text style={{ color: '#ADADAD', fontSize: 12, textAlign: 'center', marginTop: 16 }}>
               You'll verify your email before your first generation.
             </Text>
           </View>
@@ -364,12 +360,12 @@ export default function LoginScreen() {
         {view === 'magic' && (
           <View>
             <BackLink onPress={() => go('signin')} />
-            <Text className="text-white text-xl font-semibold mb-1">Magic link</Text>
-            <Text className="text-zinc-500 text-sm mb-6">We'll send you a one-tap sign-in link.</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 4 }}>Magic link</Text>
+            <Text style={{ color: '#7A7A7A', fontSize: 14, marginBottom: 24 }}>We'll send you a one-tap sign-in link.</Text>
 
             <Field label="Email" value={email} onChange={setEmail} placeholder="you@example.com" keyboard="email-address" autoCapitalize="none" />
 
-            {!!error && <Text className="text-red-400 text-sm mb-4">{error}</Text>}
+            {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
             <PrimaryBtn
               label="Send Magic Link"
@@ -382,16 +378,16 @@ export default function LoginScreen() {
         {/* ── Magic Sent ─────────────────────────────────────────── */}
         {view === 'magic_sent' && (
           <View className="items-center">
-            <View className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 items-center justify-center mb-5">
-              <Mail size={28} color="#818cf8" />
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(215,135,106,0.1)', borderWidth: 1, borderColor: 'rgba(215,135,106,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <Mail size={28} color="#E8664A" />
             </View>
-            <Text className="text-white text-xl font-semibold mb-2">Check your inbox</Text>
-            <Text className="text-zinc-400 text-sm text-center mb-1">
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 8 }}>Check your inbox</Text>
+            <Text style={{ color: '#7A7A7A', fontSize: 14, textAlign: 'center', marginBottom: 4 }}>
               We sent a magic link to
             </Text>
-            <Text className="text-zinc-200 text-sm font-medium mb-8">{email}</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 14, fontWeight: '500', marginBottom: 32 }}>{email}</Text>
 
-            {!!error && <Text className="text-red-400 text-sm mb-4">{error}</Text>}
+            {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
             <View className="w-full">
               <DevPanel>
@@ -400,8 +396,8 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity onPress={() => go('signin')} className="flex-row items-center mt-6" style={{ gap: 6 }}>
-              <ArrowLeft size={13} color="#71717a" />
-              <Text className="text-zinc-500 text-xs">Back to sign in</Text>
+              <ArrowLeft size={13} color="#ADADAD" />
+              <Text style={{ color: '#7A7A7A', fontSize: 12 }}>Back to sign in</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -410,12 +406,12 @@ export default function LoginScreen() {
         {view === 'forgot' && (
           <View>
             <BackLink onPress={() => go('signin')} />
-            <Text className="text-white text-xl font-semibold mb-1">Reset password</Text>
-            <Text className="text-zinc-500 text-sm mb-6">Enter your email and we'll send a reset link.</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 4 }}>Reset password</Text>
+            <Text style={{ color: '#7A7A7A', fontSize: 14, marginBottom: 24 }}>Enter your email and we'll send a reset link.</Text>
 
             <Field label="Email" value={email} onChange={setEmail} placeholder="you@example.com" keyboard="email-address" autoCapitalize="none" />
 
-            {!!error && <Text className="text-red-400 text-sm mb-4">{error}</Text>}
+            {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
             <PrimaryBtn label="Send Reset Email" onPress={handleForgot} loading={loading} />
           </View>
@@ -424,10 +420,10 @@ export default function LoginScreen() {
         {/* ── Reset Sent ─────────────────────────────────────────── */}
         {view === 'reset_sent' && (
           <View className="items-center">
-            <View className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 items-center justify-center mb-5">
-              <Mail size={28} color="#818cf8" />
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(215,135,106,0.1)', borderWidth: 1, borderColor: 'rgba(215,135,106,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <Mail size={28} color="#E8664A" />
             </View>
-            <Text className="text-white text-xl font-semibold mb-2">Check your inbox</Text>
+            <Text style={{ color: '#2B2B2B', fontSize: 20, fontWeight: '600', marginBottom: 8 }}>Check your inbox</Text>
             <Text className="text-zinc-400 text-sm text-center mb-8">
               We sent a password reset link to{'\n'}
               <Text className="text-zinc-200 font-medium">{email}</Text>
@@ -445,14 +441,14 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity onPress={() => go('signin')} className="flex-row items-center mt-6" style={{ gap: 6 }}>
-              <ArrowLeft size={13} color="#71717a" />
-              <Text className="text-zinc-500 text-xs">Back to sign in</Text>
+              <ArrowLeft size={13} color="#ADADAD" />
+              <Text style={{ color: '#7A7A7A', fontSize: 12 }}>Back to sign in</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Mock mode footer */}
-        <Text className="text-zinc-700 text-xs text-center uppercase tracking-widest mt-8">
+        <Text style={{ color: '#CFCBC7', fontSize: 10, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 2, marginTop: 32 }}>
           Mock auth · no real emails sent
         </Text>
       </ScrollView>

@@ -18,13 +18,13 @@ interface Props {
 export function CategoryList({ selected, onSelect }: Props) {
   return (
     <View>
-      <Text className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3 px-4">
+      <Text style={{ color: '#7A7A7A', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingHorizontal: 16 }}>
         Product Category
       </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="px-4 gap-2"
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
       >
         {CATEGORIES.map((cat) => {
           const Icon = ICON_MAP[cat.icon] ?? Package;
@@ -33,16 +33,10 @@ export function CategoryList({ selected, onSelect }: Props) {
             <Pressable
               key={cat.id}
               onPress={() => onSelect(cat.id)}
-              className={`flex-row items-center gap-2 px-4 py-2.5 rounded-xl border ${
-                isActive
-                  ? 'bg-indigo-600 border-indigo-500'
-                  : 'bg-zinc-800/60 border-zinc-700'
-              }`}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, backgroundColor: isActive ? '#E8664A' : '#F6F2EE', borderColor: isActive ? '#E8664A' : '#CFCBC7' }}
             >
-              <Icon size={15} color={isActive ? '#fff' : '#a1a1aa'} />
-              <Text
-                className={`text-sm font-medium ${isActive ? 'text-white' : 'text-zinc-400'}`}
-              >
+              <Icon size={15} color={isActive ? '#fff' : '#7A7A7A'} />
+              <Text style={{ fontSize: 14, fontWeight: '500', color: isActive ? '#fff' : '#7A7A7A' }}>
                 {cat.label}
               </Text>
             </Pressable>

@@ -1,9 +1,10 @@
-import Constants from 'expo-constants';
-import type { QuickAnalysis } from './analyzeService';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getServerUrl } from './settingsService';
 import type { StylePreset } from '../stylePresets';
+import type { QuickAnalysis } from './analyzeService';
 
 function getApiUrl(): string {
-  return (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? 'http://localhost:8080';
+  return getServerUrl();
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
@@ -82,4 +83,39 @@ export async function generateStyleImages(
     generateAdImage(sessionId, prompt2),
   ]);
   return [url1, url2];
+}
+
+export async function transcribeVoice(audioBase64: string, mimeType = 'audio/m4a'): Promise<string> {
+  const res = await fetchWithTimeout(
+    `${getApiUrl()}/api/media/transcribe`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audioBase64, mimeType }) },
+    60_000,
+  );
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Transcription failed');
+  const { transcript } = await res.json();
+  return transcript as string;
+}
+
+export async function analyzeVideoDescription(videoUri: string): Promise<string> {
+  const uploadResult = await FileSystem.uploadAsync(
+    `${getApiUrl()}/api/media/upload-video`,
+    videoUri,
+    { httpMethod: 'POST', uploadType: FileSystem.FileSystemUploadType.MULTIPART, fieldName: 'video' },
+  );
+  const data = JSON.parse(uploadResult.body);
+  if (uploadResult.status >= 400) throw new Error(data.error ?? 'Video analysis failed');
+  return data.description as string;
+}
+
+export async function analyzeProductAngles(
+  images: Array<{ base64: string; mimeType: string }>,
+  userText?: string,
+): Promise<{ productDescription: string; features: string[]; suggestedPrompt: string }> {
+  const res = await fetchWithTimeout(
+    `${getApiUrl()}/api/media/analyze-angles`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images, userText }) },
+    120_000,
+  );
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Analysis failed');
+  return res.json();
 }

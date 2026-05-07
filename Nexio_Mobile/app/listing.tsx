@@ -25,6 +25,15 @@ import {
 
 // ─── Copy button ─────────────────────────────────────────────────────────────
 
+const BG_L      = '#EDE4DC';
+const CARD_L    = '#F6F2EE';
+const BORDER_L  = '#CFCBC7';
+const PRIMARY_L = '#E8664A';
+const TEXT1_L   = '#2B2B2B';
+const TEXT2_L   = '#7A7A7A';
+const TEXT3_L   = '#ADADAD';
+const GREEN_L   = '#34C759';
+
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   async function handle() {
@@ -33,8 +42,9 @@ function CopyBtn({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   }
   return (
-    <TouchableOpacity onPress={handle} style={{ padding: 6 }} activeOpacity={0.7}>
-      {copied ? <Check size={14} color="#34d399" /> : <Copy size={14} color="#52525b" />}
+    <TouchableOpacity onPress={handle} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: copied ? 'rgba(52,199,89,0.1)' : '#F3EDE8' }} activeOpacity={0.7}>
+      {copied ? <Check size={11} color={GREEN_L} /> : <Copy size={11} color={TEXT2_L} />}
+      <Text style={{ color: copied ? GREEN_L : TEXT2_L, fontSize: 11, fontWeight: '600' }}>{copied ? 'Copied' : 'Copy'}</Text>
     </TouchableOpacity>
   );
 }
@@ -59,27 +69,14 @@ function EditableText({
         value={draft}
         onChangeText={setDraft}
         onBlur={() => { onChange(draft); setEditing(false); }}
-        style={{
-          color: bold ? '#f4f4f5' : '#a1a1aa',
-          fontSize: bold ? 14 : 13,
-          fontWeight: bold ? '600' : '400',
-          lineHeight: bold ? 22 : 21,
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(99,102,241,0.5)',
-          paddingBottom: 4,
-        }}
+        style={{ color: bold ? TEXT1_L : TEXT2_L, fontSize: bold ? 14 : 13, fontWeight: bold ? '600' : '400', lineHeight: bold ? 22 : 21, borderBottomWidth: 1, borderBottomColor: 'rgba(232,102,74,0.4)', paddingBottom: 4 }}
       />
     );
   }
 
   return (
     <TouchableOpacity onPress={() => { setDraft(value); setEditing(true); }} activeOpacity={0.7}>
-      <Text style={{
-        color: bold ? '#f4f4f5' : '#a1a1aa',
-        fontSize: bold ? 14 : 13,
-        fontWeight: bold ? '600' : '400',
-        lineHeight: bold ? 22 : 21,
-      }}>
+      <Text style={{ color: bold ? TEXT1_L : TEXT2_L, fontSize: bold ? 14 : 13, fontWeight: bold ? '600' : '400', lineHeight: bold ? 22 : 21 }}>
         {value}
       </Text>
     </TouchableOpacity>
@@ -102,45 +99,25 @@ function EditableTags({ items, onChange }: { items: string[]; onChange: (v: stri
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
       {items.map((t, i) => (
-        <View key={i} style={{
-          flexDirection: 'row', alignItems: 'center', gap: 4,
-          backgroundColor: '#27272a', borderRadius: 20,
-          paddingLeft: 10, paddingRight: 6, paddingVertical: 4,
-        }}>
-          <Text style={{ color: '#a1a1aa', fontSize: 12 }}>{t}</Text>
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: BG_L, borderRadius: 20, paddingLeft: 10, paddingRight: 6, paddingVertical: 4, borderWidth: 1, borderColor: BORDER_L }}>
+          <Text style={{ color: TEXT2_L, fontSize: 12 }}>{t}</Text>
           <TouchableOpacity onPress={() => onChange(items.filter((_, j) => j !== i))} hitSlop={6}>
-            <X size={10} color="#52525b" />
+            <X size={10} color={TEXT3_L} />
           </TouchableOpacity>
         </View>
       ))}
       {adding ? (
         <TextInput
-          autoFocus
-          value={newTag}
-          onChangeText={setNewTag}
-          onBlur={addTag}
-          onSubmitEditing={addTag}
-          returnKeyType="done"
-          placeholder="Add tag…"
-          placeholderTextColor="#52525b"
-          style={{
-            backgroundColor: '#27272a', borderRadius: 20, borderWidth: 1, borderColor: '#6366f1',
-            paddingHorizontal: 10, paddingVertical: 4, color: '#f4f4f5', fontSize: 12, minWidth: 80,
-          }}
+          autoFocus value={newTag} onChangeText={setNewTag} onBlur={addTag} onSubmitEditing={addTag} returnKeyType="done"
+          placeholder="Add tag…" placeholderTextColor={TEXT3_L}
+          style={{ backgroundColor: BG_L, borderRadius: 20, borderWidth: 1, borderColor: PRIMARY_L, paddingHorizontal: 10, paddingVertical: 4, color: TEXT1_L, fontSize: 12, minWidth: 80 }}
         />
       ) : (
-        <TouchableOpacity
-          onPress={() => setAdding(true)}
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: 3,
-            backgroundColor: 'transparent', borderRadius: 20, borderWidth: 1,
-            borderColor: '#3f3f46', borderStyle: 'dashed',
-            paddingHorizontal: 10, paddingVertical: 4,
-          }}
-          activeOpacity={0.7}
-        >
-          <Plus size={10} color="#52525b" />
-          <Text style={{ color: '#52525b', fontSize: 12 }}>Add</Text>
+        <TouchableOpacity onPress={() => setAdding(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 20, borderWidth: 1, borderColor: BORDER_L, borderStyle: 'dashed', paddingHorizontal: 10, paddingVertical: 4 }}
+          activeOpacity={0.7}>
+          <Plus size={10} color={TEXT3_L} />
+          <Text style={{ color: TEXT3_L, fontSize: 12 }}>Add</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -151,15 +128,17 @@ function EditableTags({ items, onChange }: { items: string[]; onChange: (v: stri
 
 function Card({ label, copyText, children }: { label: string; copyText: string; children: React.ReactNode }) {
   return (
-    <View style={{
-      backgroundColor: '#18181b', borderWidth: 1, borderColor: '#27272a',
-      borderRadius: 14, padding: 16, marginBottom: 12,
-    }}>
+    <View style={{ backgroundColor: CARD_L, borderWidth: 1, borderColor: BORDER_L, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ color: '#52525b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+        <Text style={{ color: TEXT3_L, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>
           {label}
         </Text>
-        <CopyBtn text={copyText} />
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <CopyBtn text={copyText} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: 'rgba(232,102,74,0.08)' }}>
+            <Text style={{ color: PRIMARY_L, fontSize: 11, fontWeight: '600' }}>Edit</Text>
+          </View>
+        </View>
       </View>
       {children}
     </View>
@@ -173,19 +152,15 @@ function OptionRow<T extends string>({
 }: { label: string; options: T[]; value: T; onChange: (v: T) => void }) {
   return (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: '#71717a', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
+      <Text style={{ color: TEXT2_L, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map(opt => (
           <TouchableOpacity key={opt} onPress={() => onChange(opt)}
-            style={{
-              paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10,
-              backgroundColor: value === opt ? '#4f46e5' : '#18181b',
-              borderWidth: 1, borderColor: value === opt ? '#6366f1' : '#27272a',
-            }}
+            style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, backgroundColor: value === opt ? PRIMARY_L : CARD_L, borderWidth: 1, borderColor: value === opt ? PRIMARY_L : BORDER_L }}
             activeOpacity={0.8}>
-            <Text style={{ fontSize: 13, fontWeight: '600', textTransform: 'capitalize', color: value === opt ? '#fff' : '#71717a' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', textTransform: 'capitalize', color: value === opt ? '#fff' : TEXT2_L }}>
               {opt}
             </Text>
           </TouchableOpacity>
@@ -267,23 +242,19 @@ export default function ListingScreen() {
   const pa = listing?.product_analysis;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#09090b', paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: BG_L, paddingTop: insets.top }}>
 
       {/* Header */}
-      <View style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 12,
-        borderBottomWidth: 1, borderColor: '#18181b',
-      }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: BORDER_L, backgroundColor: CARD_L }}>
         <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <ArrowLeft size={18} color="#71717a" />
-          <Text style={{ color: '#71717a', fontSize: 14 }}>Back</Text>
+          <ArrowLeft size={18} color={TEXT2_L} />
+          <Text style={{ color: TEXT2_L, fontSize: 14 }}>Back</Text>
         </TouchableOpacity>
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Listing Generator</Text>
+        <Text style={{ color: TEXT1_L, fontWeight: '700', fontSize: 15 }}>Listing Generator</Text>
         {phase === 'result' ? (
           <TouchableOpacity onPress={() => setPhase('config')} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Settings2 size={15} color="#818cf8" />
-            <Text style={{ color: '#818cf8', fontSize: 13 }}>Settings</Text>
+            <Settings2 size={15} color={PRIMARY_L} />
+            <Text style={{ color: PRIMARY_L, fontSize: 13 }}>Settings</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 70 }} />
@@ -292,17 +263,13 @@ export default function ListingScreen() {
 
       {/* Product analysis strip */}
       {phase === 'result' && pa && (
-        <View style={{ borderBottomWidth: 1, borderColor: '#18181b', paddingVertical: 10 }}>
+        <View style={{ borderBottomWidth: 1, borderColor: BORDER_L, paddingVertical: 10, backgroundColor: CARD_L }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, gap: 6, alignItems: 'center' }}>
             {(Object.entries(pa) as [string, string][]).filter(([, v]) => v).map(([k, v]) => (
-              <View key={k} style={{
-                flexDirection: 'row', alignItems: 'center', gap: 4,
-                backgroundColor: '#18181b', borderWidth: 1, borderColor: '#27272a',
-                borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
-              }}>
-                <Text style={{ color: '#52525b', fontSize: 11, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}:</Text>
-                <Text style={{ color: '#d4d4d8', fontSize: 11, fontWeight: '500' }}>{v}</Text>
+              <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: BG_L, borderWidth: 1, borderColor: BORDER_L, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Text style={{ color: TEXT2_L, fontSize: 11, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}:</Text>
+                <Text style={{ color: TEXT1_L, fontSize: 11, fontWeight: '500' }}>{v}</Text>
               </View>
             ))}
           </ScrollView>
@@ -311,20 +278,15 @@ export default function ListingScreen() {
 
       {/* Platform tabs */}
       {phase === 'result' && (
-        <View style={{ borderBottomWidth: 1, borderColor: '#18181b' }}>
+        <View style={{ borderBottomWidth: 1, borderColor: BORDER_L, backgroundColor: CARD_L }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
             {PLATFORMS.map(({ id, label, Icon }) => (
               <TouchableOpacity key={id} onPress={() => setActivePlatform(id)}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 6,
-                  paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-                  backgroundColor: activePlatform === id ? '#4f46e5' : '#18181b',
-                  borderWidth: 1, borderColor: activePlatform === id ? '#6366f1' : '#27272a',
-                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22, backgroundColor: activePlatform === id ? PRIMARY_L : CARD_L, borderWidth: 1, borderColor: activePlatform === id ? PRIMARY_L : BORDER_L }}
                 activeOpacity={0.8}>
-                <Icon size={12} color={activePlatform === id ? '#fff' : '#52525b'} />
-                <Text style={{ fontSize: 12, fontWeight: '700', color: activePlatform === id ? '#fff' : '#71717a' }}>{label}</Text>
+                <Icon size={12} color={activePlatform === id ? '#fff' : TEXT3_L} />
+                <Text style={{ fontSize: 12, fontWeight: '700', color: activePlatform === id ? '#fff' : TEXT2_L }}>{label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -335,27 +297,19 @@ export default function ListingScreen() {
       {phase === 'config' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {!pickedImage && (
-            <View style={{
-              backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)',
-              borderRadius: 12, padding: 16, marginBottom: 24,
-            }}>
-              <Text style={{ color: '#fbbf24', fontSize: 13, textAlign: 'center' }}>Go back and upload a product image first.</Text>
+            <View style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', borderRadius: 12, padding: 16, marginBottom: 24 }}>
+              <Text style={{ color: '#f59e0b', fontSize: 13, textAlign: 'center' }}>Go back and upload a product image first.</Text>
             </View>
           )}
           <OptionRow label="Language" options={['English', 'Turkish', 'Spanish', 'German'] as Language[]} value={language} onChange={setLanguage} />
           <OptionRow label="Tone" options={['professional', 'luxury', 'casual', 'fun'] as Tone[]} value={tone} onChange={setTone} />
           <OptionRow label="Length" options={['short', 'medium', 'long'] as ListingLength[]} value={length} onChange={setLength} />
           <TouchableOpacity onPress={handleGenerate} disabled={!pickedImage || isGenerating}
-            style={{
-              marginTop: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
-              flexDirection: 'row', paddingVertical: 16, gap: 8,
-              backgroundColor: !pickedImage || isGenerating ? '#27272a' : '#4f46e5',
-              opacity: !pickedImage ? 0.5 : 1,
-            }}
+            style={{ marginTop: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', paddingVertical: 16, gap: 8, backgroundColor: !pickedImage || isGenerating ? BORDER_L : PRIMARY_L, opacity: !pickedImage ? 0.5 : 1 }}
             activeOpacity={0.8}>
             {isGenerating
               ? <><ActivityIndicator size="small" color="#fff" /><Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generating…</Text></>
-              : <Text style={{ fontWeight: '700', fontSize: 14, color: !pickedImage ? '#52525b' : '#fff' }}>Generate Listing</Text>
+              : <Text style={{ fontWeight: '700', fontSize: 14, color: !pickedImage ? TEXT3_L : '#fff' }}>Generate Listing</Text>
             }
           </TouchableOpacity>
         </ScrollView>
@@ -456,30 +410,23 @@ export default function ListingScreen() {
           </ScrollView>
 
           {/* Bottom action bar */}
-          <View style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            paddingBottom: insets.bottom + 12, paddingTop: 12, paddingHorizontal: 16,
-            backgroundColor: '#09090b', borderTopWidth: 1, borderColor: '#18181b',
-            flexDirection: 'row', gap: 10,
-          }}>
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom + 12, paddingTop: 12, paddingHorizontal: 16, backgroundColor: BG_L, borderTopWidth: 1, borderColor: BORDER_L, flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={() => Clipboard.setStringAsync(copyAllForPlatform())}
-              style={{
-                flex: 1, paddingVertical: 14, borderRadius: 12,
-                backgroundColor: '#18181b', borderWidth: 1, borderColor: '#27272a',
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
+              style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD_L, borderWidth: 1, borderColor: BORDER_L, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
               activeOpacity={0.8}>
-              <Copy size={15} color="#a1a1aa" />
-              <Text style={{ color: '#a1a1aa', fontWeight: '700', fontSize: 13 }}>Copy All</Text>
+              <Copy size={14} color={TEXT2_L} />
+              <Text style={{ color: TEXT2_L, fontWeight: '700', fontSize: 13 }}>Copy All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD_L, borderWidth: 1, borderColor: BORDER_L, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              activeOpacity={0.8}>
+              <Settings2 size={14} color={TEXT2_L} />
+              <Text style={{ color: TEXT2_L, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setPhase('config')}
-              style={{
-                flex: 1, paddingVertical: 14, borderRadius: 12,
-                backgroundColor: '#4f46e5',
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
+              style={{ flex: 2, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY_L, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
               activeOpacity={0.8}>
-              <Settings2 size={15} color="#fff" />
+              <Settings2 size={14} color="#fff" />
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
             </TouchableOpacity>
           </View>

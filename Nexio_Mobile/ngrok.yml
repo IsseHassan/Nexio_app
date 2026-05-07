@@ -1,0 +1,8 @@
+version: 3
+agent:
+  authtoken: 39FW9IkP0egbKccD56Q3TkOYjfN_2P2j8H6TM974Nv8Ab8UGr
+tunnels:
+  api-booking:
+    proto: http
+    addr: 8080
+    inspect: true

@@ -14,21 +14,19 @@ export function GenerateButton({ onPress, disabled, loading }: Props) {
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      className={`mx-4 py-4 rounded-xl flex-row items-center justify-center gap-2 ${
-        isDisabled ? 'bg-indigo-600/40' : 'bg-indigo-600'
-      }`}
+      style={{ marginHorizontal: 16, paddingVertical: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: isDisabled ? 'rgba(215,135,106,0.4)' : '#E8664A' }}
     >
       {loading ? (
         <>
           <ActivityIndicator size="small" color="#fff" />
-          <Text className="text-white font-bold text-base">Generating...</Text>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Generating...</Text>
         </>
       ) : (
         <>
-          <View className="w-5 h-5 items-center justify-center">
+          <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={18} color="#fff" />
           </View>
-          <Text className="text-white font-bold text-base">Generate Catalog</Text>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Generate Catalog</Text>
         </>
       )}
     </Pressable>

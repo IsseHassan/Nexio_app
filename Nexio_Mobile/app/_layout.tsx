@@ -4,6 +4,7 @@ import { Stack, useSegments, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../src/auth/AuthContext';
+import { loadSettings } from '../src/services/settingsService';
 
 function RouteGuard() {
   const { user, loading } = useAuth();
@@ -29,15 +30,16 @@ function RouteGuard() {
 }
 
 export default function RootLayout() {
+  useEffect(() => { loadSettings(); }, []);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <RouteGuard />
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0B0B0F' },
+            contentStyle: { backgroundColor: '#EDE4DC' },
             animation: 'slide_from_right',
           }}
         >

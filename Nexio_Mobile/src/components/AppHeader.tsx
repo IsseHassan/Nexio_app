@@ -6,32 +6,32 @@ export function AppHeader() {
   const { user, signOut } = useAuth();
 
   return (
-    <View className="px-4 pt-4 pb-3 flex-row items-center justify-between">
-      <View className="flex-row items-center gap-2">
-        <View className="w-8 h-8 rounded-lg bg-indigo-600 items-center justify-center">
+    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E8664A', alignItems: 'center', justifyContent: 'center' }}>
           <Sparkles size={16} color="#fff" />
         </View>
-        <Text className="text-white font-bold text-lg tracking-tight">AdGenius AI</Text>
+        <Text style={{ color: '#2B2B2B', fontWeight: '700', fontSize: 18, letterSpacing: -0.3 }}>AdGenius AI</Text>
       </View>
 
-      <View className="flex-row items-center" style={{ gap: 10 }}>
-        <View className="items-end">
-          <View className="bg-indigo-900/50 border border-indigo-700 rounded-full px-3 py-1 mb-0.5">
-            <Text className="text-indigo-300 text-xs font-semibold">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ alignItems: 'flex-end' }}>
+          <View style={{ backgroundColor: 'rgba(215,135,106,0.12)', borderWidth: 1, borderColor: 'rgba(215,135,106,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, marginBottom: 2 }}>
+            <Text style={{ color: '#E8664A', fontSize: 10, fontWeight: '700' }}>
               {user?.role === 'admin' ? 'ADMIN' : 'PRO PLAN'}
             </Text>
           </View>
-          <Text className="text-zinc-500 text-xs" numberOfLines={1}>
+          <Text style={{ color: '#7A7A7A', fontSize: 11 }} numberOfLines={1}>
             {user?.email}
           </Text>
         </View>
 
         <TouchableOpacity
           onPress={signOut}
-          className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 items-center justify-center"
+          style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.75}
         >
-          <LogOut size={14} color="#71717a" />
+          <LogOut size={14} color="#ADADAD" />
         </TouchableOpacity>
       </View>
     </View>

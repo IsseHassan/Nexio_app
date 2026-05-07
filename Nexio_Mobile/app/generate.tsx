@@ -12,10 +12,10 @@ import { getRecommendations } from '../src/services/analyticsService';
 import type { IntelligenceResult } from '../src/services/analyticsService';
 import { saveKit } from '../src/services/historyService';
 
-const PRIMARY = '#5C3BE5';
-const TEXT1   = '#FFFFFF';
-const TEXT2   = '#8B8BA7';
-const TEXT3   = '#3A3A52';
+const PRIMARY = '#E8664A';
+const TEXT1   = '#2B2B2B';
+const TEXT2   = '#7A7A7A';
+const TEXT3   = '#ADADAD';
 
 type StepState = 'pending' | 'running' | 'done' | 'error';
 
@@ -57,14 +57,14 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
     <Animated.View style={{ opacity: fade, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 }}>
       <View style={{
         width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-        backgroundColor: state === 'done' ? 'rgba(52,211,153,0.12)' : state === 'running' ? 'rgba(92,59,229,0.12)' : '#13131F',
+        backgroundColor: state === 'done' ? 'rgba(126,143,90,0.15)' : state === 'running' ? 'rgba(215,135,106,0.12)' : '#F0EBE5',
         borderWidth: 1,
-        borderColor: state === 'done' ? 'rgba(52,211,153,0.4)' : state === 'running' ? 'rgba(92,59,229,0.5)' : '#1A1A28',
+        borderColor: state === 'done' ? 'rgba(126,143,90,0.4)' : state === 'running' ? 'rgba(215,135,106,0.5)' : '#CFCBC7',
       }}>
         {state === 'running' && <ActivityIndicator size="small" color={PRIMARY} />}
-        {state === 'done'    && <Check size={15} color="#34d399" strokeWidth={2.5} />}
+        {state === 'done'    && <Check size={15} color="#7E8F5A" strokeWidth={2.5} />}
         {state === 'pending' && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: TEXT3 }} />}
-        {state === 'error'   && <Text style={{ color: '#f87171', fontSize: 14, fontWeight: 'bold' }}>!</Text>}
+        {state === 'error'   && <Text style={{ color: '#D46A5A', fontSize: 14, fontWeight: 'bold' }}>!</Text>}
       </View>
       <Text style={{ color: state === 'pending' ? TEXT3 : TEXT1, fontSize: 15, fontWeight: '500' }}>{label}</Text>
     </Animated.View>
@@ -74,7 +74,7 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
 function CircularProgress({ pct }: { pct: number }) {
   return (
     <View style={{ width: 140, height: 140, alignItems: 'center', justifyContent: 'center', marginBottom: 48 }}>
-      <View style={{ width: 130, height: 130, borderRadius: 65, borderWidth: 8, borderColor: '#1A1A28', alignItems: 'center', justifyContent: 'center', position: 'absolute' }} />
+      <View style={{ width: 130, height: 130, borderRadius: 65, borderWidth: 8, borderColor: '#CFCBC7', alignItems: 'center', justifyContent: 'center', position: 'absolute' }} />
       <View style={{ width: 130, height: 130, borderRadius: 65, borderWidth: 8, borderColor: PRIMARY, opacity: Math.max(0.15, pct / 100), position: 'absolute', shadowColor: PRIMARY, shadowOpacity: 0.5, shadowRadius: 16 }} />
       <Text style={{ color: TEXT1, fontSize: 32, fontWeight: '800', letterSpacing: -1 }}>{pct}%</Text>
     </View>
@@ -240,7 +240,7 @@ export default function GenerateScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0B0B0F', paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: '#EDE4DC', paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <View style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 48 }}>
         <Text style={{ color: TEXT1, fontSize: 22, fontWeight: '800', letterSpacing: -0.5, marginBottom: 6 }}>
           {TITLE_BY_GOAL[goal] ?? TITLE_BY_GOAL.full}
@@ -261,7 +261,7 @@ export default function GenerateScreen() {
       </View>
 
       <View style={{ position: 'absolute', bottom: insets.bottom + 28, left: 0, right: 0, alignItems: 'center' }}>
-        <View style={{ backgroundColor: '#13131F', borderRadius: 12, borderWidth: 1, borderColor: '#1A1A28', paddingHorizontal: 16, paddingVertical: 10 }}>
+        <View style={{ backgroundColor: '#F6F2EE', borderRadius: 12, borderWidth: 1, borderColor: '#CFCBC7', paddingHorizontal: 16, paddingVertical: 10 }}>
           <Text style={{ color: TEXT2, fontSize: 12 }}>
             💡 <Text style={{ fontWeight: '600' }}>Tip: </Text>You can close this screen. We'll notify you when it's ready.
           </Text>

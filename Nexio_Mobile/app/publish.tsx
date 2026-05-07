@@ -1,37 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Share, Linking, Alert,
+  TextInput, ActivityIndicator, Share, Linking, Alert, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, Globe, Check, Share2, MessageCircle, ChevronRight, Store, Eye, EyeOff } from 'lucide-react-native';
+import {
+  X, Globe, Check, Share2, MessageCircle, Store, Eye,
+  Sparkles, Phone, Tag, RefreshCw, Edit2,
+} from 'lucide-react-native';
 import { useAdStore } from '../src/store/adStore';
-import { publishKit, getMyStore, toggleKitVisibility, type StoreInfo } from '../src/services/storeService';
+import { publishKit, getMyStore, type StoreInfo } from '../src/services/storeService';
 
-const BG      = '#0B0B0F';
-const CARD    = '#131320';
-const BORDER  = '#1A1A28';
-const PRIMARY = '#5C3BE5';
-const TEXT1   = '#FFFFFF';
-const TEXT2   = '#8B8BA7';
-const TEXT3   = '#3A3A52';
-const GREEN   = '#34d399';
+const BG      = '#EDE4DC';
+const CARD    = '#F6F2EE';
+const BORDER  = '#CFCBC7';
+const PRIMARY = '#E8664A';
+const TEXT1   = '#2B2B2B';
+const TEXT2   = '#7A7A7A';
+const TEXT3   = '#ADADAD';
+const GREEN   = '#34C759';
 
-// Stable per-device userId derived from expo-constants or generated once
 function getDeviceUserId(): string {
-  const key = 'nexio_user_id';
-  // Use a simple deterministic ID based on a random value stored in memory for the session
-  // In production, replace with real auth userId
   if (!(global as any).__nexioUserId) {
     (global as any).__nexioUserId = 'u_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
   return (global as any).__nexioUserId;
 }
 
+function generateStoreSuggestion(productName: string, category: string) {
+  const words = (productName || category || 'my').split(/[\s,]+/).filter(Boolean);
+  const prefix = (words[0] || 'my').replace(/[^a-zA-Z]/g, '') || 'my';
+  const name = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase() + 'Hub';
+  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const tagline = `Premium ${(category || 'products').toLowerCase()}. Trusted quality.`;
+  return { slug, name, tagline };
+}
+
+function FormField({ icon, label, hint, children, hasCheck }: {
+  icon: React.ReactNode; label: string; hint?: string; children: React.ReactNode; hasCheck?: boolean;
+}) {
+  return (
+    <View style={{ marginBottom: 4 }}>
+      <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ width: 24, alignItems: 'center' }}>{icon}</View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: TEXT3, fontSize: 11, fontWeight: '600', marginBottom: 3 }}>{label}</Text>
+          {children}
+        </View>
+        {hasCheck && (
+          <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(52,199,89,0.1)', borderWidth: 1, borderColor: 'rgba(52,199,89,0.3)', alignItems: 'center', justifyContent: 'center' }}>
+            <Check size={12} color={GREEN} strokeWidth={3} />
+          </View>
+        )}
+      </View>
+      {hint && <Text style={{ color: TEXT3, fontSize: 11, marginTop: 5, marginBottom: 14, paddingLeft: 52 }}>{hint}</Text>}
+    </View>
+  );
+}
+
 export default function PublishScreen() {
   const insets = useSafeAreaInsets();
-  const { variations, listingResult, selectedCategory, goal } = useAdStore();
+  const { variations, listingResult, selectedCategory, goal, pickedImage } = useAdStore();
 
   const [slug,       setSlug]       = useState('');
   const [name,       setName]       = useState('');
@@ -42,13 +72,16 @@ export default function PublishScreen() {
   const [published,  setPublished]  = useState<{ storeUrl: string; productUrl: string } | null>(null);
   const [existingStore, setExistingStore] = useState<StoreInfo | null>(null);
   const [loadingStore,  setLoadingStore]  = useState(true);
+  const [aiEditing, setAiEditing] = useState(false);
 
-  const userId   = getDeviceUserId();
-  const kitId    = `kit_${Date.now().toString(36)}`;
+  const userId      = getDeviceUserId();
+  const kitId       = `kit_${Date.now().toString(36)}`;
   const productName = listingResult?.global?.title?.split(/[\s,]+/).slice(0, 5).join(' ')
                    || listingResult?.product_analysis?.product_type
                    || selectedCategory
                    || 'My Product';
+  const assetCount  = variations.filter(v => v.status === 'completed').length;
+  const suggestion  = generateStoreSuggestion(productName, selectedCategory);
 
   useEffect(() => {
     getMyStore(userId)
@@ -60,9 +93,17 @@ export default function PublishScreen() {
           setTagline(data.store.tagline ?? '');
           setWhatsapp(data.store.contactWhatsapp ?? '');
           setEmail(data.store.contactEmail ?? '');
+        } else {
+          setSlug(suggestion.slug);
+          setName(suggestion.name);
+          setTagline(suggestion.tagline);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setSlug(suggestion.slug);
+        setName(suggestion.name);
+        setTagline(suggestion.tagline);
+      })
       .finally(() => setLoadingStore(false));
   }, []);
 
@@ -74,22 +115,13 @@ export default function PublishScreen() {
       Alert.alert('Contact required', 'Add a WhatsApp number or email so customers can reach you.');
       return;
     }
-
     setPublishing(true);
     try {
       const result = await publishKit({
-        userId,
-        storeSlug: cleanSlug,
-        displayName: name.trim(),
-        tagline: tagline.trim(),
-        contactWhatsapp: whatsapp.trim(),
-        contactEmail: email.trim(),
-        kitId,
-        productName,
-        category: selectedCategory,
-        goal,
-        variations,
-        listingResult,
+        userId, storeSlug: cleanSlug, displayName: name.trim(),
+        tagline: tagline.trim(), contactWhatsapp: whatsapp.trim(),
+        contactEmail: email.trim(), kitId, productName,
+        category: selectedCategory, goal, variations, listingResult,
       });
       setPublished({ storeUrl: result.storeUrl, productUrl: result.productUrl });
     } catch (e: any) {
@@ -101,16 +133,13 @@ export default function PublishScreen() {
 
   function shareWhatsApp(url: string) {
     const text = `Check out my product: ${url}`;
-    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`).catch(() => {
-      Share.share({ message: text });
-    });
+    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`).catch(() => Share.share({ message: text }));
   }
 
   function shareLink(url: string) {
     Share.share({ message: url, url });
   }
 
-  // ── Success state ──────────────────────────────────────────────────────────
   if (published) {
     return (
       <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
@@ -122,17 +151,14 @@ export default function PublishScreen() {
             <X size={18} color={TEXT2} />
           </TouchableOpacity>
         </View>
-
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center', paddingTop: 20 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: 'rgba(52,211,153,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)' }}>
+          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: 'rgba(52,199,89,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(52,199,89,0.3)' }}>
             <Check size={32} color={GREEN} />
           </View>
           <Text style={{ color: TEXT1, fontSize: 22, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>Your product is live!</Text>
           <Text style={{ color: TEXT2, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
             Customers can now discover and contact you through your store.
           </Text>
-
-          {/* Product URL */}
           <View style={{ width: '100%', backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 12 }}>
             <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Product Link</Text>
             <Text style={{ color: PRIMARY, fontSize: 12, marginBottom: 12 }} numberOfLines={1}>{published.productUrl}</Text>
@@ -149,8 +175,6 @@ export default function PublishScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Store URL */}
           <View style={{ width: '100%', backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 24 }}>
             <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Your Store</Text>
             <Text style={{ color: TEXT2, fontSize: 12, marginBottom: 12 }} numberOfLines={1}>{published.storeUrl}</Text>
@@ -160,7 +184,6 @@ export default function PublishScreen() {
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Share Store Link</Text>
             </TouchableOpacity>
           </View>
-
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
             <Text style={{ color: TEXT2, fontSize: 14, fontWeight: '600' }}>Back to Kit</Text>
           </TouchableOpacity>
@@ -169,17 +192,16 @@ export default function PublishScreen() {
     );
   }
 
-  // ── Publish form ───────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center', backgroundColor: CARD, borderBottomWidth: 1, borderColor: BORDER }}>
         <TouchableOpacity onPress={() => router.back()}
-          style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          style={{ position: 'absolute', left: 20, top: 14, width: 38, height: 38, borderRadius: 12, backgroundColor: BG, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <X size={18} color={TEXT2} />
         </TouchableOpacity>
-        <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 16 }}>Publish to Store</Text>
-        <View style={{ width: 38 }} />
+        <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 17 }}>Publish to Store</Text>
+        <Text style={{ color: TEXT2, fontSize: 12, marginTop: 3 }}>Make your product live in minutes</Text>
       </View>
 
       {loadingStore ? (
@@ -187,30 +209,91 @@ export default function PublishScreen() {
           <ActivityIndicator color={PRIMARY} />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
 
-          {/* Product preview */}
-          <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(92,59,229,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-              <Store size={22} color={PRIMARY} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{productName}</Text>
-              <Text style={{ color: TEXT2, fontSize: 12, marginTop: 2 }}>{selectedCategory} · {variations.filter(v => v.status === 'completed').length} images</Text>
-            </View>
-            {existingStore && (
-              <View style={{ backgroundColor: 'rgba(52,211,153,0.1)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                <Text style={{ color: GREEN, fontSize: 10, fontWeight: '700' }}>Store exists</Text>
+          {/* Product preview card */}
+          <View style={{ backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            {pickedImage ? (
+              <Image source={{ uri: pickedImage.uri }} style={{ width: 76, height: 76, borderRadius: 14 }} resizeMode="cover" />
+            ) : (
+              <View style={{ width: 76, height: 76, borderRadius: 14, backgroundColor: '#F3EDE8', alignItems: 'center', justifyContent: 'center' }}>
+                <Store size={28} color={TEXT3} />
               </View>
             )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 15, marginBottom: 4 }} numberOfLines={2}>{productName}</Text>
+              <Text style={{ color: TEXT2, fontSize: 12, marginBottom: 8 }}>{selectedCategory} · {assetCount} assets</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: 'rgba(52,199,89,0.1)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                <Check size={11} color={GREEN} strokeWidth={3} />
+                <Text style={{ color: GREEN, fontSize: 11, fontWeight: '700' }}>Ready to publish</Text>
+              </View>
+            </View>
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(232,102,74,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={18} color={PRIMARY} />
+            </View>
           </View>
 
-          {/* Store URL */}
-          <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 15, marginBottom: 14 }}>
-            {existingStore ? 'Store Settings' : 'Create Your Store'}
-          </Text>
+          {/* AI Store Setup card */}
+          <View style={{ backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 16, marginBottom: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: 'rgba(232,102,74,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={20} color={PRIMARY} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 15 }}>AI Store Setup</Text>
+                <Text style={{ color: TEXT2, fontSize: 12, marginTop: 2 }}>Smart details generated by AI to help you go live faster.</Text>
+              </View>
+            </View>
 
-          <Field label="Store URL *" hint="yourstore.app/store/...">
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+              <View style={{ flex: 1, backgroundColor: BG, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 12 }}>
+                <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '600', marginBottom: 4 }}>Store Name</Text>
+                {aiEditing ? (
+                  <TextInput value={name} onChangeText={setName} style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }} />
+                ) : (
+                  <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }}>{name || suggestion.name}</Text>
+                )}
+              </View>
+              <View style={{ flex: 1, backgroundColor: BG, borderRadius: 12, borderWidth: 1, borderColor: BORDER, padding: 12 }}>
+                <Text style={{ color: TEXT3, fontSize: 10, fontWeight: '600', marginBottom: 4 }}>Store URL</Text>
+                {aiEditing ? (
+                  <TextInput value={slug} onChangeText={t => setSlug(t.toLowerCase().replace(/[^a-z0-9-]/g, ''))} style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }} />
+                ) : (
+                  <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14 }}>{(slug || suggestion.slug) + '.store'}</Text>
+                )}
+              </View>
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(232,102,74,0.08)', borderRadius: 10, padding: 10, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={13} color={PRIMARY} />
+              <Text style={{ color: PRIMARY, fontSize: 12, flex: 1 }}>
+                Optimized for the {selectedCategory.toLowerCase()} niche to attract the right customers.
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity onPress={() => setAiEditing(!aiEditing)} activeOpacity={0.8}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: BORDER, backgroundColor: CARD }}>
+                <Edit2 size={14} color={TEXT2} />
+                <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>{aiEditing ? 'Done' : 'Edit'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  const s = generateStoreSuggestion(productName + Date.now(), selectedCategory);
+                  setSlug(s.slug); setName(s.name); setTagline(s.tagline);
+                }}
+                activeOpacity={0.8}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: PRIMARY, backgroundColor: 'rgba(232,102,74,0.08)' }}>
+                <RefreshCw size={14} color={PRIMARY} />
+                <Text style={{ color: PRIMARY, fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Store Information */}
+          <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 17, marginBottom: 14 }}>Store Information</Text>
+
+          <FormField icon={<Globe size={16} color={TEXT2} />} label="Store URL *" hint="yourstore.app/store/..." hasCheck={!!slug.trim()}>
             <TextInput
               value={slug}
               onChangeText={t => setSlug(t.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
@@ -218,96 +301,96 @@ export default function PublishScreen() {
               placeholderTextColor={TEXT3}
               autoCapitalize="none"
               autoCorrect={false}
-              style={inputStyle}
+              style={{ color: TEXT1, fontSize: 14 }}
             />
-          </Field>
+          </FormField>
 
-          <Field label="Display Name *">
+          <FormField icon={<Store size={16} color={TEXT2} />} label="Display Name *" hint="This is how your store will appear to customers." hasCheck={!!name.trim()}>
             <TextInput
               value={name}
               onChangeText={setName}
               placeholder="Your Store Name"
               placeholderTextColor={TEXT3}
-              style={inputStyle}
+              style={{ color: TEXT1, fontSize: 14 }}
             />
-          </Field>
+          </FormField>
 
-          <Field label="Tagline" hint="Short description shown on your store">
+          <FormField icon={<Tag size={16} color={TEXT2} />} label="Tagline" hint="Short description shown on your store.">
             <TextInput
               value={tagline}
               onChangeText={setTagline}
-              placeholder="Handmade with love"
+              placeholder="Premium cars. Trusted drives."
               placeholderTextColor={TEXT3}
-              style={inputStyle}
+              style={{ color: TEXT1, fontSize: 14 }}
             />
-          </Field>
+          </FormField>
 
-          <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 15, marginBottom: 6, marginTop: 8 }}>Contact Info</Text>
-          <Text style={{ color: TEXT2, fontSize: 12, marginBottom: 16, lineHeight: 18 }}>
-            Customers use these to reach you. At least one is required.
-          </Text>
-
-          <Field label="WhatsApp Number" hint="Include country code, e.g. +1234567890">
+          <FormField icon={<Phone size={16} color={TEXT2} />} label="Contact (WhatsApp)" hint="Customers will use this to reach you." hasCheck={!!whatsapp.trim()}>
             <TextInput
               value={whatsapp}
               onChangeText={setWhatsapp}
               placeholder="+1 234 567 8900"
               placeholderTextColor={TEXT3}
               keyboardType="phone-pad"
-              style={inputStyle}
+              style={{ color: TEXT1, fontSize: 14 }}
             />
-          </Field>
+          </FormField>
 
-          <Field label="Email">
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={TEXT3}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={inputStyle}
-            />
-          </Field>
+          {/* Store Preview */}
+          {listingResult && (
+            <View style={{ marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 17 }}>Store Preview</Text>
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }} activeOpacity={0.7}>
+                  <Text style={{ color: PRIMARY, fontSize: 13, fontWeight: '600' }}>View Full Preview</Text>
+                  <Text style={{ color: PRIMARY, fontSize: 13 }}>↗</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, padding: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
+                  {pickedImage ? (
+                    <Image source={{ uri: pickedImage.uri }} style={{ width: 90, height: 90, borderRadius: 14 }} resizeMode="cover" />
+                  ) : (
+                    <View style={{ width: 90, height: 90, borderRadius: 14, backgroundColor: '#F3EDE8' }} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14, lineHeight: 20, marginBottom: 6 }} numberOfLines={2}>{productName}</Text>
+                    <Text style={{ color: TEXT2, fontSize: 12, lineHeight: 18, marginBottom: 12 }} numberOfLines={3}>
+                      {listingResult.global.short_description}
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {(listingResult.global.keywords ?? []).slice(0, 3).map((kw, i) => (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                          <Text style={{ color: TEXT2, fontSize: 11 }}>{kw}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
         </ScrollView>
       )}
 
-      {/* Publish button */}
+      {/* Bottom bar */}
       {!loadingStore && (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: insets.bottom + 16, paddingTop: 12, borderTopWidth: 1, borderColor: BORDER, backgroundColor: BG }}>
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: insets.bottom + 16, paddingTop: 12, borderTopWidth: 1, borderColor: BORDER, backgroundColor: BG, flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity activeOpacity={0.8}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17, borderRadius: 16, backgroundColor: CARD, borderWidth: 1.5, borderColor: BORDER }}>
+            <Eye size={17} color={TEXT2} />
+            <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 15 }}>Preview</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={handlePublish} disabled={publishing} activeOpacity={0.85}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17, borderRadius: 16, backgroundColor: PRIMARY, opacity: publishing ? 0.7 : 1, shadowColor: PRIMARY, shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 4 } }}>
-            {publishing
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Globe size={18} color="#fff" />}
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-              {publishing ? 'Publishing…' : existingStore ? 'Update & Publish' : 'Publish to Store'}
+            style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17, borderRadius: 16, backgroundColor: PRIMARY, opacity: publishing ? 0.7 : 1 }}>
+            {publishing ? <ActivityIndicator color="#fff" size="small" /> : <Globe size={17} color="#fff" />}
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+              {publishing ? 'Publishing…' : 'Publish to Store'}
             </Text>
           </TouchableOpacity>
         </View>
       )}
-    </View>
-  );
-}
-
-const inputStyle = {
-  backgroundColor: '#1A1A2E',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: BORDER,
-  color: TEXT1,
-  fontSize: 14,
-  paddingHorizontal: 14,
-  paddingVertical: 13,
-  width: '100%' as const,
-};
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{ color: TEXT2, fontSize: 12, fontWeight: '600', marginBottom: 6 }}>{label}</Text>
-      {children}
-      {hint && <Text style={{ color: TEXT3, fontSize: 11, marginTop: 5 }}>{hint}</Text>}
     </View>
   );
 }

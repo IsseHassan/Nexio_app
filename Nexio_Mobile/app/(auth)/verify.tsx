@@ -17,27 +17,27 @@ export default function VerifyScreen() {
 
   return (
     <View
-      className="flex-1 bg-zinc-950 items-center justify-center px-6"
+      style={{ flex: 1, backgroundColor: '#EDE4DC', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
       {/* Icon */}
       <View
         className="w-20 h-20 rounded-full items-center justify-center mb-6"
-        style={{ borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)', backgroundColor: 'rgba(99,102,241,0.1)' }}
+        style={{ borderWidth: 1, borderColor: 'rgba(215,135,106,0.3)', backgroundColor: 'rgba(215,135,106,0.1)' }}
       >
-        <Mail size={32} color="#818cf8" />
+        <Mail size={32} color="#E8664A" />
       </View>
 
-      <Text className="text-white text-2xl font-bold mb-2 text-center">
+      <Text style={{ color: '#2B2B2B', fontSize: 24, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
         Verify your email
       </Text>
-      <Text className="text-zinc-400 text-sm text-center mb-1">
+      <Text style={{ color: '#7A7A7A', fontSize: 14, textAlign: 'center', marginBottom: 4 }}>
         We sent a verification link to
       </Text>
-      <Text className="text-zinc-200 text-sm font-semibold text-center mb-3">
+      <Text style={{ color: '#2B2B2B', fontSize: 14, fontWeight: '600', textAlign: 'center', marginBottom: 12 }}>
         {user?.email}
       </Text>
-      <Text className="text-zinc-600 text-xs text-center mb-10 px-4">
+      <Text style={{ color: '#ADADAD', fontSize: 12, textAlign: 'center', marginBottom: 40, paddingHorizontal: 16 }}>
         Tap the link in the email to activate your account. Verification is required before generating ads.
       </Text>
 
@@ -45,12 +45,11 @@ export default function VerifyScreen() {
       <TouchableOpacity
         onPress={handleResend}
         disabled={resent}
-        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl items-center justify-center flex-row mb-3"
-        style={{ paddingVertical: 14, gap: 8, opacity: resent ? 0.6 : 1 }}
+        style={{ paddingVertical: 14, gap: 8, opacity: resent ? 0.6 : 1, width: '100%', backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginBottom: 12 }}
         activeOpacity={0.8}
       >
-        <RefreshCw size={14} color="#a1a1aa" />
-        <Text className="text-zinc-200 text-sm font-medium">
+        <RefreshCw size={14} color="#7A7A7A" />
+        <Text style={{ color: '#2B2B2B', fontSize: 14, fontWeight: '500' }}>
           {resent ? 'Email sent!' : 'Resend verification email'}
         </Text>
       </TouchableOpacity>
@@ -68,11 +67,10 @@ export default function VerifyScreen() {
         </Text>
         <TouchableOpacity
           onPress={() => verifyEmail()}
-          className="bg-zinc-800 border border-zinc-700 rounded-xl items-center justify-center"
-          style={{ paddingVertical: 13 }}
+          style={{ paddingVertical: 13, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.8}
         >
-          <Text className="text-zinc-200 text-sm font-medium">
+          <Text style={{ color: '#2B2B2B', fontSize: 14, fontWeight: '500' }}>
             Simulate email click → verify now
           </Text>
         </TouchableOpacity>
@@ -84,11 +82,11 @@ export default function VerifyScreen() {
         className="flex-row items-center"
         style={{ gap: 6 }}
       >
-        <LogOut size={13} color="#52525b" />
-        <Text className="text-zinc-600 text-xs">Sign out</Text>
+        <LogOut size={13} color="#ADADAD" />
+        <Text style={{ color: '#ADADAD', fontSize: 12 }}>Sign out</Text>
       </TouchableOpacity>
 
-      <Text className="text-zinc-700 text-xs uppercase tracking-widest mt-10">
+      <Text style={{ color: '#CFCBC7', fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, marginTop: 40 }}>
         Mock auth · no real emails sent
       </Text>
     </View>

@@ -28,13 +28,13 @@ export default function PreviewScreen() {
       <View className="flex-row items-center justify-between px-4 py-3">
         <Pressable
           onPress={() => navigation.goBack()}
-          className="w-9 h-9 rounded-full bg-zinc-800/80 items-center justify-center"
+          style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(43,43,43,0.6)', alignItems: 'center', justifyContent: 'center' }}
         >
           <X size={18} color="#fff" />
         </Pressable>
         <View className="items-center">
-          <Text className="text-white font-semibold text-sm">{variation.label}</Text>
-          <Text className="text-zinc-500 text-xs">{variation.description}</Text>
+          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>{variation.label}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{variation.description}</Text>
         </View>
         <View className="w-9" />
       </View>
@@ -50,17 +50,17 @@ export default function PreviewScreen() {
       <View className="flex-row gap-3 px-6 py-4">
         <Pressable
           onPress={() => shareImage(variation.imageUrl!, variation.label)}
-          className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-800 border border-zinc-700"
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(246,242,238,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
         >
-          <Share2 size={18} color="#a1a1aa" />
-          <Text className="text-zinc-300 font-semibold">Share</Text>
+          <Share2 size={18} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Share</Text>
         </Pressable>
         <Pressable
           onPress={() => saveImageToPhotos(variation.imageUrl!, variation.label)}
-          className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600"
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: '#E8664A' }}
         >
           <Download size={18} color="#fff" />
-          <Text className="text-white font-semibold">Save to Photos</Text>
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Save to Photos</Text>
         </Pressable>
       </View>
     </View>

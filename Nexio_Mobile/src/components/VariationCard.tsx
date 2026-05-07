@@ -45,7 +45,7 @@ export function VariationCard({ variation, onPreview }: Props) {
   const badgeColors = topPlatform ? (PLATFORM_COLORS[topPlatform] ?? { bg: 'rgba(39,39,42,0.9)', border: '#3f3f46', text: '#a1a1aa' }) : null;
 
   return (
-    <View className="flex-1 m-1.5 rounded-xl overflow-hidden border border-zinc-700/50 bg-zinc-800/60">
+    <View style={{ flex: 1, margin: 6, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#CFCBC7', backgroundColor: '#F6F2EE' }}>
       <View className="aspect-square">
         {variation.status === 'completed' && variation.imageUrl ? (
           <>
@@ -57,9 +57,9 @@ export function VariationCard({ variation, onPreview }: Props) {
             {showBadge && (
               <View style={{
                 position: 'absolute', top: 6, left: 6,
-                backgroundColor: isOverallBest ? 'rgba(79,70,229,0.92)' : badgeColors!.bg,
+                backgroundColor: isOverallBest ? 'rgba(215,135,106,0.92)' : badgeColors!.bg,
                 borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2,
-                borderWidth: 1, borderColor: isOverallBest ? '#818cf8' : badgeColors!.border,
+                borderWidth: 1, borderColor: isOverallBest ? '#E8664A' : badgeColors!.border,
               }}>
                 <Text style={{
                   color: isOverallBest ? '#fff' : badgeColors!.text,
@@ -78,19 +78,19 @@ export function VariationCard({ variation, onPreview }: Props) {
         ) : (
           <Animated.View
             style={{ opacity: shimmerOpacity }}
-            className="w-full h-full bg-zinc-700/60 items-center justify-center gap-2"
+            style={{ width: '100%', height: '100%', backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            <ActivityIndicator size="small" color="#6366f1" />
-            <Text className="text-zinc-500 text-xs">Generating...</Text>
+            <ActivityIndicator size="small" color="#E8664A" />
+            <Text style={{ color: '#7A7A7A', fontSize: 12 }}>Generating...</Text>
           </Animated.View>
         )}
       </View>
 
       <View className="p-2">
-        <Text className="text-white text-xs font-semibold" numberOfLines={1}>
+        <Text style={{ color: '#2B2B2B', fontSize: 12, fontWeight: '600' }} numberOfLines={1}>
           {variation.label}
         </Text>
-        <Text className="text-zinc-500 text-xs mt-0.5" numberOfLines={1}>
+        <Text style={{ color: '#7A7A7A', fontSize: 12, marginTop: 2 }} numberOfLines={1}>
           {variation.description}
         </Text>
 
@@ -98,17 +98,17 @@ export function VariationCard({ variation, onPreview }: Props) {
           <View className="flex-row gap-1.5 mt-2">
             <Pressable
               onPress={() => onPreview(variation)}
-              className="flex-1 flex-row items-center justify-center gap-1 py-1.5 rounded-lg bg-zinc-700/60"
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6, borderRadius: 8, backgroundColor: '#E8E0D8' }}
             >
-              <Expand size={12} color="#a1a1aa" />
-              <Text className="text-zinc-400 text-xs">Preview</Text>
+              <Expand size={12} color="#7A7A7A" />
+              <Text style={{ color: '#7A7A7A', fontSize: 12 }}>Preview</Text>
             </Pressable>
             <Pressable
               onPress={() => saveImageToPhotos(variation.imageUrl!, variation.label)}
-              className="flex-1 flex-row items-center justify-center gap-1 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-700/50"
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(215,135,106,0.12)', borderWidth: 1, borderColor: 'rgba(215,135,106,0.3)' }}
             >
-              <Download size={12} color="#818cf8" />
-              <Text className="text-indigo-400 text-xs">Save</Text>
+              <Download size={12} color="#E8664A" />
+              <Text style={{ color: '#E8664A', fontSize: 12 }}>Save</Text>
             </Pressable>
           </View>
         )}

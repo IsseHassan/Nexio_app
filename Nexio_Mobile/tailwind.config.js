@@ -9,8 +9,8 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          accent: '#4f46e5',
-          hover: '#6366f1',
+          accent: '#D7876A',
+          hover: '#8A9A6E',
         },
       },
     },
