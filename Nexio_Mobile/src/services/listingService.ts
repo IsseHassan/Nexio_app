@@ -1,4 +1,4 @@
-import Constants from 'expo-constants';
+import { getServerUrl } from './settingsService';
 
 export type Language = 'English' | 'Turkish' | 'Spanish' | 'German';
 export type Tone = 'professional' | 'luxury' | 'casual' | 'fun';
@@ -59,7 +59,7 @@ export interface ListingParams {
 }
 
 function getApiUrl(): string {
-  return (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? 'http://localhost:8080';
+  return getServerUrl();
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
@@ -72,7 +72,7 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
   }
 }
 
-const SYSTEM_PROMPT = `You are AdGenius AI — an advanced AI product listing generator designed for e-commerce sellers.
+const SYSTEM_PROMPT = `You are Nexio AI — an advanced AI product listing generator designed for e-commerce sellers.
 
 Your task is to analyze a product image and generate a COMPLETE, platform-optimized product listing.
 
@@ -128,7 +128,7 @@ export async function generateListing(params: ListingParams): Promise<ListingRes
   const url = `${getApiUrl()}/api/generate-text`;
   const fetchOptions: RequestInit = {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
     body: JSON.stringify({ prompt, image: params.image }),
   };
 

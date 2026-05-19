@@ -9,7 +9,7 @@ import {
 } from 'lucide-react-native';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, Image,
-  ActivityIndicator, Dimensions, Alert, Modal, Share, Platform, Linking,
+  ActivityIndicator, Dimensions, Alert, Modal, Share, Platform, Linking, KeyboardAvoidingView,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -17,12 +17,13 @@ import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdStore } from '../src/store/adStore';
-import { cacheProductImage, generateAdImage, generateStyleImages } from '../src/services/aiService';
+import { cacheProductImage, generateAdImage, generateStyleImages, askAI } from '../src/services/aiService';
 import { exportProductKit, type ExportPlatform } from '../src/services/exportService';
-import type { ListingResult } from '../src/services/listingService';
+import { generateListing, type ListingResult } from '../src/services/listingService';
 import { getPresetsForCategory, type StylePreset } from '../src/stylePresets';
 import { trackEvent, getRecommendations, type IntelligenceResult } from '../src/services/analyticsService';
 import { loadFavorites, saveFavorites } from '../src/services/favoritesService';
+import { Image3DViewer } from '../src/components/Image3DViewer';
 
 const BG      = '#EDE4DC';
 const CARD    = '#F6F2EE';
@@ -112,6 +113,75 @@ function EditableTags({ items, onChange }: { items: string[]; onChange: (v: stri
   );
 }
 
+// ─── Ask AI Modal ─────────────────────────────────────────────────────────────
+
+function AskAIModal({ visible, onClose, context }: { visible: boolean; onClose: () => void; context: string }) {
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function send() {
+    const q = question.trim();
+    if (!q || loading) return;
+    setLoading(true);
+    setAnswer('');
+    try {
+      const text = await askAI(q, context);
+      setAnswer(text);
+    } catch {
+      setAnswer('Sorry, could not get a response. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function close() { setQuestion(''); setAnswer(''); onClose(); }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={close}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: CARD, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Sparkles size={18} color={PRIMARY} />
+                <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 16 }}>Ask AI</Text>
+              </View>
+              <TouchableOpacity onPress={close} hitSlop={10}><X size={20} color={TEXT2} /></TouchableOpacity>
+            </View>
+
+            {answer ? (
+              <ScrollView style={{ maxHeight: 220, marginBottom: 16 }} showsVerticalScrollIndicator={false}>
+                <View style={{ backgroundColor: BG, borderRadius: 14, padding: 14 }}>
+                  <Text style={{ color: TEXT1, fontSize: 13, lineHeight: 21 }}>{answer}</Text>
+                </View>
+              </ScrollView>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+              <TextInput
+                value={question}
+                onChangeText={setQuestion}
+                placeholder="Ask about your listing, suggest improvements…"
+                placeholderTextColor={TEXT3}
+                multiline
+                style={{ flex: 1, backgroundColor: BG, borderRadius: 14, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, color: TEXT1, fontSize: 14, lineHeight: 20, maxHeight: 100 }}
+              />
+              <TouchableOpacity
+                onPress={send}
+                disabled={loading || !question.trim()}
+                style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: loading || !question.trim() ? BORDER : PRIMARY, alignItems: 'center', justifyContent: 'center' }}
+                activeOpacity={0.85}>
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : <Sparkles size={18} color="#fff" />}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Platform tabs ────────────────────────────────────────────────────────────
 
 const LISTING_PLATFORMS = [
@@ -125,8 +195,16 @@ type PlatformId = typeof LISTING_PLATFORMS[number]['id'];
 
 // ─── Tab: Listing ─────────────────────────────────────────────────────────────
 
-function ListingTab({ listing, setListing, category }: { listing: ListingResult; setListing: (v: ListingResult) => void; category: string }) {
+function ListingTab({ listing, setListing, category, onImprove, onRegenerate, improving }: {
+  listing: ListingResult;
+  setListing: (v: ListingResult) => void;
+  category: string;
+  onImprove: () => void;
+  onRegenerate: () => void;
+  improving: boolean;
+}) {
   const [platform, setPlatform] = useState<PlatformId>('global');
+  const [showAskAI, setShowAskAI] = useState(false);
   const trackCopy = () => trackEvent({ category, event_type: 'copy_listing', platform });
   const { global: g, etsy, amazon, instagram, tiktok } = listing;
 
@@ -136,6 +214,16 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
   const patchAmazon    = (p: any) => setListing({ ...listing, amazon: { ...amazon, ...p } });
   const patchSocialIcon = (p: any) => setListing({ ...listing, instagram: { ...instagram, ...p } });
   const patchTiktok    = (p: any) => setListing({ ...listing, tiktok: { ...tiktok, ...p } });
+
+  const askAIContext = [
+    `Category: ${category}`,
+    `Title: ${listing.global.title}`,
+    `Short description: ${listing.global.short_description}`,
+    `Keywords: ${(listing.global.keywords ?? []).slice(0, 10).join(', ')}`,
+    `Etsy title: ${listing.etsy.title}`,
+    `Amazon title: ${listing.amazon.title}`,
+    `Instagram caption: ${listing.instagram.caption}`,
+  ].join('\n');
 
   function copyAll() {
     switch (platform) {
@@ -149,6 +237,8 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
 
   return (
     <View style={{ flex: 1 }}>
+      <AskAIModal visible={showAskAI} onClose={() => setShowAskAI(false)} context={askAIContext} />
+
       {/* Platform switcher */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 12 }}>
@@ -182,10 +272,11 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
               </View>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: PRIMARY }}>
-            <Sparkles size={11} color={PRIMARY} />
-            <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>Improve{'\n'}with AI</Text>
-          </View>
+          <TouchableOpacity onPress={onImprove} disabled={improving} activeOpacity={0.8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: PRIMARY, opacity: improving ? 0.6 : 1 }}>
+            {improving ? <ActivityIndicator size="small" color={PRIMARY} /> : <Sparkles size={11} color={PRIMARY} />}
+            <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>{improving ? 'Improving…' : 'Improve\nwith AI'}</Text>
+          </TouchableOpacity>
         </View>
 
         {platform === 'global' && (<>
@@ -233,17 +324,17 @@ function ListingTab({ listing, setListing, category }: { listing: ListingResult;
           <Copy size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Copy All</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity onPress={() => setShowAskAI(true)}
           style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
           activeOpacity={0.8}>
           <Sparkles size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/create')}
-          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY }}
+        <TouchableOpacity onPress={onRegenerate} disabled={improving}
+          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: improving ? BORDER : PRIMARY }}
           activeOpacity={0.8}>
-          <RefreshCw size={14} color="#fff" />
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
+          {improving ? <ActivityIndicator size="small" color="#fff" /> : <RefreshCw size={14} color="#fff" />}
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{improving ? 'Working…' : 'Regenerate'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -260,6 +351,49 @@ const MOCK_IMAGE_SLOTS = [
   { label: 'Studio',     seed: 'studio' },
   { label: 'Scene',      seed: 'scene' },
 ];
+
+// ─── Shared image helper ─────────────────────────────────────────────────────
+
+function imageExt(url: string): string {
+  if (!url.startsWith('http')) return 'png';
+  const clean = url.split('?')[0];
+  const m = clean.match(/\.(jpe?g|png|webp|gif)$/i);
+  const ext = m?.[1]?.toLowerCase();
+  if (!ext) return 'jpg'; // Cloudinary default
+  return ext === 'jpeg' ? 'jpg' : ext;
+}
+
+async function getLocalUri(imageUrl: string, cacheKey: string): Promise<string> {
+  const ext = imageExt(imageUrl);
+  const fileUri = `${FileSystem.cacheDirectory}nexio_${cacheKey}.${ext}`;
+  if (imageUrl.startsWith('data:') || !imageUrl.startsWith('http')) {
+    const b64 = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+    await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+  } else {
+    const result = await FileSystem.downloadAsync(imageUrl, fileUri);
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`Image download failed (HTTP ${result.status})`);
+    }
+  }
+  const info = await FileSystem.getInfoAsync(fileUri);
+  if (!info.exists || (info as any).size === 0) {
+    throw new Error('Downloaded file is empty or missing');
+  }
+  return fileUri;
+}
+
+async function saveImageToLibrary(imageUrl: string, cacheKey: string): Promise<void> {
+  const { status } = await MediaLibrary.requestPermissionsAsync();
+  if (status !== 'granted') throw new Error('PERMISSION_DENIED');
+  const fileUri = await getLocalUri(imageUrl, cacheKey);
+  try {
+    // createAssetAsync is more reliable than saveToLibraryAsync on iOS
+    const asset = await MediaLibrary.createAssetAsync(fileUri);
+    if (!asset) throw new Error('Asset creation failed');
+  } finally {
+    FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
+  }
+}
 
 // ─── Full-screen Ad Preview Modal ────────────────────────────────────────────
 
@@ -280,21 +414,22 @@ function AdPreviewModal({
 
   async function handleSave() {
     setSaving(true);
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to save this image.');
-      setSaving(false);
-      return;
-    }
     try {
-      const b64     = slot.imageUrl!.replace(/^data:image\/\w+;base64,/, '');
-      const fileUri = `${FileSystem.cacheDirectory}adgenius_prev_${slot.id}.png`;
-      await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
-      await MediaLibrary.saveToLibraryAsync(fileUri);
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      await saveImageToLibrary(slot.imageUrl!, `prev_${slot.id}`);
       Alert.alert('Saved!', 'Image saved to your photo library.');
-    } catch {
-      Alert.alert('Error', 'Could not save image.');
+    } catch (e: any) {
+      console.error('[handleSave]', e);
+      if (e?.message === 'PERMISSION_DENIED') {
+        Alert.alert('Permission needed', 'Allow photo library access in Settings to save images.');
+      } else {
+        // Fallback: open share sheet so user can manually save
+        const fileUri = await getLocalUri(slot.imageUrl!, `prev_${slot.id}`).catch(() => null);
+        if (fileUri) {
+          await Sharing.shareAsync(fileUri, { mimeType: `image/${imageExt(slot.imageUrl!)}` });
+        } else {
+          Alert.alert('Error', 'Could not save image.');
+        }
+      }
     }
     setSaving(false);
   }
@@ -302,23 +437,23 @@ function AdPreviewModal({
   async function handleShare() {
     trackEvent({ category: selectedCategory, event_type: 'download_image', variant_id: slot.id, style: slot.type });
     try {
-      const b64     = slot.imageUrl!.replace(/^data:image\/\w+;base64,/, '');
-      const fileUri = `${FileSystem.cacheDirectory}adgenius_shr_${slot.id}.png`;
-      await FileSystem.writeAsStringAsync(fileUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+      const fileUri = await getLocalUri(slot.imageUrl!, `shr_${slot.id}`);
 
       const hashtags = listing?.instagram?.hashtags?.join(' ') ?? '';
       const parts: string[] = [];
       if (title)    parts.push(title);
       if (subtitle) parts.push(subtitle);
       if (hashtags) parts.push(hashtags);
-      const message = parts.join('\n\n');
+      const caption = parts.join('\n\n');
 
       if (Platform.OS === 'ios') {
-        await Share.share({ title, message, url: fileUri });
+        await Share.share({ message: caption, url: fileUri });
       } else {
-        await Sharing.shareAsync(fileUri, { mimeType: 'image/png', dialogTitle: slot.label });
+        if (caption) await Clipboard.setStringAsync(caption);
+        await Sharing.shareAsync(fileUri, { mimeType: `image/${imageExt(slot.imageUrl!)}` });
       }
-    } catch {
+    } catch (e) {
+      console.error('[handleShare]', e);
       Alert.alert('Error', 'Could not share image.');
     }
   }
@@ -508,25 +643,24 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
   }
 
   async function downloadAll() {
-    const ready = slots.filter(s => s.imageUrl?.startsWith('data:'));
+    const ready = slots.filter(s => s.imageUrl);
     if (ready.length === 0) {
       Alert.alert('No images ready', 'Wait for images to finish generating.');
       return;
     }
     const { status } = await MediaLibrary.requestPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to save images.');
+      Alert.alert('Permission needed', 'Allow photo library access in Settings to save images.');
       return;
     }
     setDownloading(true);
     let saved = 0;
     for (const slot of ready) {
       try {
-        const base64 = slot.imageUrl!.replace(/^data:image\/\w+;base64,/, '');
-        const fileUri = `${FileSystem.cacheDirectory}adgenius_${slot.id}.png`;
-        await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-        await MediaLibrary.saveToLibraryAsync(fileUri);
-        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+        const fileUri = await getLocalUri(slot.imageUrl!, `dl_${slot.id}`);
+        const asset = await MediaLibrary.createAssetAsync(fileUri);
+        if (!asset) throw new Error('createAssetAsync returned null');
+        FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
         trackEvent({ category, event_type: 'download_image', variant_id: slot.id, style: slot.label });
         saved++;
       } catch (e) {
@@ -534,7 +668,11 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
       }
     }
     setDownloading(false);
-    Alert.alert('Saved!', `${saved} of ${ready.length} image${ready.length !== 1 ? 's' : ''} saved to your photo library.`);
+    if (saved > 0) {
+      Alert.alert('Saved!', `${saved} of ${ready.length} image${ready.length !== 1 ? 's' : ''} saved to your photo library.`);
+    } else {
+      Alert.alert('Could not save', 'Images could not be saved. Try sharing them instead.');
+    }
   }
 
   const slotA = compareA ? slots.find(s => s.id === compareA) : null;
@@ -689,15 +827,20 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   <TouchableOpacity
                     onPress={async () => {
                       if (!slot.imageUrl) return;
-                      const { status } = await MediaLibrary.requestPermissionsAsync();
-                      if (status !== 'granted') { Alert.alert('Permission needed', 'Allow photo library access.'); return; }
-                      const b64 = slot.imageUrl.replace(/^data:image\/\w+;base64,/, '');
-                      const uri = `${FileSystem.cacheDirectory}adgenius_s_${slot.id}.png`;
-                      await FileSystem.writeAsStringAsync(uri, b64, { encoding: FileSystem.EncodingType.Base64 });
-                      await MediaLibrary.saveToLibraryAsync(uri);
-                      await FileSystem.deleteAsync(uri, { idempotent: true });
-                      trackEvent({ category, event_type: 'download_image', variant_id: slot.id, style: slot.label });
-                      Alert.alert('Saved!', 'Image saved to your photo library.');
+                      try {
+                        await saveImageToLibrary(slot.imageUrl, `s_${slot.id}`);
+                        trackEvent({ category, event_type: 'download_image', variant_id: slot.id, style: slot.label });
+                        Alert.alert('Saved!', 'Image saved to your photo library.');
+                      } catch (e: any) {
+                        console.error('[slot save]', e);
+                        if (e?.message === 'PERMISSION_DENIED') {
+                          Alert.alert('Permission needed', 'Allow photo library access in Settings.');
+                        } else {
+                          const fallbackUri = await getLocalUri(slot.imageUrl, `sf_${slot.id}`).catch(() => null);
+                          if (fallbackUri) await Sharing.shareAsync(fallbackUri, { mimeType: `image/${imageExt(slot.imageUrl)}` });
+                          else Alert.alert('Error', 'Could not save image.');
+                        }
+                      }
                     }}
                     style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
                     <Save size={13} color={TEXT3} />
@@ -706,22 +849,23 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   <TouchableOpacity
                     onPress={async () => {
                       if (!slot.imageUrl) return;
-                      const b64 = slot.imageUrl.replace(/^data:image\/\w+;base64,/, '');
-                      const uri = `${FileSystem.cacheDirectory}adgenius_sh_${slot.id}.png`;
-                      await FileSystem.writeAsStringAsync(uri, b64, { encoding: FileSystem.EncodingType.Base64 });
-                      const cardTitle    = listingResult?.global?.title ?? slot.label;
-                      const cardSubtitle = listingResult?.global?.short_description ?? '';
-                      const cardTags     = listingResult?.instagram?.hashtags?.join(' ') ?? '';
-                      const cardParts: string[] = [];
-                      if (cardTitle)    cardParts.push(cardTitle);
-                      if (cardSubtitle) cardParts.push(cardSubtitle);
-                      if (cardTags)     cardParts.push(cardTags);
-                      const cardMessage = cardParts.join('\n\n');
-                      if (Platform.OS === 'ios') {
-                        await Share.share({ title: cardTitle, message: cardMessage, url: uri });
-                      } else {
-                        await Sharing.shareAsync(uri, { mimeType: 'image/png' });
-                      }
+                      try {
+                        const uri = await getLocalUri(slot.imageUrl, `sh_${slot.id}`);
+                        const cardTitle    = listingResult?.global?.title ?? slot.label;
+                        const cardSubtitle = listingResult?.global?.short_description ?? '';
+                        const cardTags     = listingResult?.instagram?.hashtags?.join(' ') ?? '';
+                        const cardParts: string[] = [];
+                        if (cardTitle)    cardParts.push(cardTitle);
+                        if (cardSubtitle) cardParts.push(cardSubtitle);
+                        if (cardTags)     cardParts.push(cardTags);
+                        const cardMessage = cardParts.join('\n\n');
+                        if (Platform.OS === 'ios') {
+                          await Share.share({ message: cardMessage, url: uri });
+                        } else {
+                          if (cardMessage) await Clipboard.setStringAsync(cardMessage);
+                          await Sharing.shareAsync(uri, { mimeType: `image/${imageExt(slot.imageUrl!)}` });
+                        }
+                      } catch (e) { console.error('[card share]', e); Alert.alert('Error', 'Could not share image.'); }
                     }}
                     style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
                     <Share2 size={13} color={TEXT3} />
@@ -953,11 +1097,21 @@ const SOCIAL_PLATFORM_PILLS = [
 ] as const;
 type SocialPlatformPill = typeof SOCIAL_PLATFORM_PILLS[number]['id'];
 
-function SocialTab({ listing, category }: { listing: ListingResult; category: string }) {
+function SocialTab({ listing, category, onRegenerate, improving }: { listing: ListingResult; category: string; onRegenerate: () => void; improving: boolean }) {
   const { instagram, tiktok } = listing;
   const { variations, pickedImage } = useAdStore();
   const [platform, setPlatform] = useState<SocialPlatformPill>('instagram');
+  const [showAskAI, setShowAskAI] = useState(false);
   const trackCopy = () => trackEvent({ category, event_type: 'copy_listing', platform: 'social' });
+
+  const socialAskAIContext = [
+    `Category: ${category}`,
+    `Instagram caption: ${listing.instagram.caption}`,
+    `Instagram hashtags: ${(listing.instagram.hashtags ?? []).join(', ')}`,
+    `TikTok hook: ${listing.tiktok.hook}`,
+    `TikTok caption: ${listing.tiktok.caption}`,
+    `TikTok hashtags: ${(listing.tiktok.hashtags ?? []).join(', ')}`,
+  ].join('\n');
 
   const igTags  = instagram.hashtags ?? [];
   const ttTags  = tiktok.hashtags ?? [];
@@ -978,6 +1132,7 @@ function SocialTab({ listing, category }: { listing: ListingResult; category: st
 
   return (
     <View style={{ flex: 1 }}>
+      <AskAIModal visible={showAskAI} onClose={() => setShowAskAI(false)} context={socialAskAIContext} />
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
         {/* Hero stats card */}
@@ -1133,17 +1288,17 @@ function SocialTab({ listing, category }: { listing: ListingResult; category: st
           <Copy size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Copy All</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity onPress={() => setShowAskAI(true)}
           style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}
           activeOpacity={0.8}>
           <Sparkles size={14} color={TEXT2} />
           <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Ask AI</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/create')}
-          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: PRIMARY }}
+        <TouchableOpacity onPress={onRegenerate} disabled={improving}
+          style={{ flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: improving ? BORDER : PRIMARY }}
           activeOpacity={0.8}>
-          <RefreshCw size={14} color="#fff" />
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Regenerate</Text>
+          {improving ? <ActivityIndicator size="small" color="#fff" /> : <RefreshCw size={14} color="#fff" />}
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{improving ? 'Working…' : 'Regenerate'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1247,6 +1402,38 @@ export default function KitScreen() {
     return 'listing';
   });
   const [listing, setListing] = useState(storedListing);
+  const [improving, setImproving] = useState(false);
+
+  async function handleRegenerate() {
+    if (!pickedImage) { Alert.alert('No image', 'Product image is required to regenerate.'); return; }
+    setImproving(true);
+    try {
+      const base64 = pickedImage.base64 || await FileSystem.readAsStringAsync(pickedImage.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const result = await generateListing({ image: { base64, mimeType: pickedImage.mimeType || 'image/jpeg' }, category: selectedCategory });
+      setListing(result);
+    } catch (e: any) {
+      Alert.alert('Failed', e?.message ?? 'Could not regenerate listing.');
+    } finally {
+      setImproving(false);
+    }
+  }
+
+  async function handleImprove() {
+    if (!pickedImage) { Alert.alert('No image', 'Product image is required.'); return; }
+    setImproving(true);
+    try {
+      const base64 = pickedImage.base64 || await FileSystem.readAsStringAsync(pickedImage.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const existingContext = listing
+        ? `Existing title: "${listing.global.title}". Improve for better SEO, engagement, and conversions. Make it more compelling.`
+        : undefined;
+      const result = await generateListing({ image: { base64, mimeType: pickedImage.mimeType || 'image/jpeg' }, category: selectedCategory, userDescription: existingContext });
+      setListing(result);
+    } catch (e: any) {
+      Alert.alert('Failed', e?.message ?? 'Could not improve listing.');
+    } finally {
+      setImproving(false);
+    }
+  }
 
   const productName = listing?.product_analysis?.product_type || 'Product Kit';
   const productCat  = listing?.product_analysis?.category || selectedCategory;
@@ -1290,13 +1477,13 @@ export default function KitScreen() {
 
       {/* Tab content */}
       {activeTab === 'images'  && <ImagesTab variations={variations ?? []} category={selectedCategory} />}
-      {activeTab === 'listing' && listing && <ListingTab listing={listing} setListing={setListing} category={selectedCategory} />}
+      {activeTab === 'listing' && listing && <ListingTab listing={listing} setListing={setListing} category={selectedCategory} onImprove={handleImprove} onRegenerate={handleRegenerate} improving={improving} />}
       {activeTab === 'listing' && !listing && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: TEXT2, fontSize: 14 }}>No listing generated yet.</Text>
         </View>
       )}
-      {activeTab === 'social'  && listing && <SocialTab listing={listing} category={selectedCategory} />}
+      {activeTab === 'social'  && listing && <SocialTab listing={listing} category={selectedCategory} onRegenerate={handleRegenerate} improving={improving} />}
       {activeTab === 'social'  && !listing && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: TEXT2, fontSize: 14 }}>Generate a listing first.</Text>

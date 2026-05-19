@@ -5,7 +5,8 @@ let connected = false;
 
 export async function connectDB(): Promise<void> {
   if (connected || !MONGODB_URI) return;
-  await mongoose.connect(MONGODB_URI, { tls: true, tlsAllowInvalidCertificates: true });
+  const isAtlas = MONGODB_URI.includes('mongodb+srv') || MONGODB_URI.includes('mongodb.net');
+  await mongoose.connect(MONGODB_URI, isAtlas ? { tls: true, tlsAllowInvalidCertificates: true } : {});
   connected = true;
   console.log('[db] MongoDB connected');
 }

@@ -8,7 +8,7 @@ function extractBase64(dataUri: string): string {
 }
 
 async function writeToCache(base64: string, label: string): Promise<string> {
-  const fileUri = `${FileSystem.cacheDirectory}adgenius-${label}-${Date.now()}.png`;
+  const fileUri = `${FileSystem.cacheDirectory}nexio-${label}-${Date.now()}.png`;
   await FileSystem.writeAsStringAsync(fileUri, base64, {
     encoding: FileSystem.EncodingType.Base64,
   });

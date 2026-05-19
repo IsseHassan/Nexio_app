@@ -196,7 +196,7 @@ export default function AccountScreen() {
           <Row icon={LogOut} label="Log Out" onPress={signOut} danger />
         </View>
 
-        <Text style={{ color: TEXT3, fontSize: 11, textAlign: 'center', marginTop: 24 }}>AdGenius v2.2.0</Text>
+        <Text style={{ color: TEXT3, fontSize: 11, textAlign: 'center', marginTop: 24 }}>Nexio v2.2.0</Text>
       </ScrollView>
     </View>
   );

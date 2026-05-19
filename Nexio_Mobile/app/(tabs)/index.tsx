@@ -210,9 +210,8 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}>
           <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>
-            <Text style={{ color: TEXT1 }}>Ad</Text>
-            <Text style={{ color: ACCENT }}>Genius</Text>
-            <Text style={{ color: TEXT1 }}> AI</Text>
+            <Text style={{ color: TEXT1 }}>Ne</Text>
+            <Text style={{ color: ACCENT }}>xio</Text>
           </Text>
           <View style={{ position: 'relative' }}>
             <TouchableOpacity style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>

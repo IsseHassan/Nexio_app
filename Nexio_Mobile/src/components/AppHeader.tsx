@@ -11,7 +11,7 @@ export function AppHeader() {
         <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E8664A', alignItems: 'center', justifyContent: 'center' }}>
           <Sparkles size={16} color="#fff" />
         </View>
-        <Text style={{ color: '#2B2B2B', fontWeight: '700', fontSize: 18, letterSpacing: -0.3 }}>AdGenius AI</Text>
+        <Text style={{ color: '#2B2B2B', fontWeight: '700', fontSize: 18, letterSpacing: -0.3 }}>Nexio</Text>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

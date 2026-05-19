@@ -17,12 +17,22 @@ function getDefaultUrl(): string {
 const _defaultUrl = getDefaultUrl();
 let _serverUrl = _defaultUrl;
 
+function isPrivateIP(url: string): boolean {
+  return /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(url);
+}
+
 export async function loadSettings(): Promise<void> {
   try {
     const text = await FileSystem.readAsStringAsync(SETTINGS_FILE);
     const data = JSON.parse(text);
     if (typeof data.serverUrl === 'string' && data.serverUrl.trim()) {
-      _serverUrl = data.serverUrl.trim().replace(/\/+$/, '');
+      const saved = data.serverUrl.trim().replace(/\/+$/, '');
+      // Ignore a stale saved local IP when the app is now configured with a public URL (ngrok etc.)
+      if (isPrivateIP(saved) && !isPrivateIP(_defaultUrl)) {
+        await FileSystem.deleteAsync(SETTINGS_FILE, { idempotent: true });
+        return;
+      }
+      _serverUrl = saved;
     }
   } catch {}
 }

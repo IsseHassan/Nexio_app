@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator, Alert, Image,
@@ -8,8 +8,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, ImagePlus, RefreshCw, Sparkles, Play } from 'lucide-react-native';
-import { cacheProductImage, generateVideo } from '../src/services/aiService';
+import { ArrowLeft, ImagePlus, RefreshCw, Sparkles, Play, Clock } from 'lucide-react-native';
+import { cacheProductImage, generateVideo, fetchUserVideos, type UserVideoEntry } from '../src/services/aiService';
+import { useAuth } from '../src/auth/AuthContext';
 
 const BG      = '#EDE4DC';
 const CARD    = '#F6F2EE';
@@ -26,12 +27,34 @@ const STYLES = [
   { label: 'Dynamic', prompt: 'Fast dynamic zoom with motion blur, bold energy, social media style' },
 ];
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 export default function VideoScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+
   const [image, setImage] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [history, setHistory] = useState<UserVideoEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setHistoryLoading(true);
+    fetchUserVideos(user.id)
+      .then(setHistory)
+      .finally(() => setHistoryLoading(false));
+  }, [user?.id]);
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -53,8 +76,12 @@ export default function VideoScreen() {
     setVideoUrl(null);
     try {
       const sessionId = await cacheProductImage(image.base64, image.mimeType);
-      const url = await generateVideo(p, sessionId);
+      const url = await generateVideo(p, sessionId, user?.id);
       setVideoUrl(url);
+      if (user?.id) {
+        const updated = await fetchUserVideos(user.id);
+        setHistory(updated);
+      }
     } catch (e: any) {
       Alert.alert('Failed', e?.message ?? 'Could not generate video. Try again.');
     } finally {
@@ -177,6 +204,53 @@ export default function VideoScreen() {
               <Play size={14} color="#fff" fill="#fff" />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Generate again</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ─── Video History ─────────────────────────────────────── */}
+        {user && (
+          <View style={{ marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Clock size={14} color={TEXT3} />
+              <Text style={{ color: TEXT3, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                My Videos
+              </Text>
+            </View>
+
+            {historyLoading && (
+              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                <ActivityIndicator size="small" color={TEXT3} />
+              </View>
+            )}
+
+            {!historyLoading && history.length === 0 && (
+              <View style={{ backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, padding: 24, alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: TEXT2, fontSize: 14, fontWeight: '600' }}>No videos yet</Text>
+                <Text style={{ color: TEXT3, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+                  Generate your first product video above — it will be saved here automatically.
+                </Text>
+              </View>
+            )}
+
+            {history.map((v) => (
+              <View
+                key={v.id}
+                style={{ backgroundColor: CARD, borderRadius: 18, borderWidth: 1, borderColor: BORDER, overflow: 'hidden', marginBottom: 12 }}
+              >
+                <Video
+                  source={{ uri: v.videoUrl }}
+                  style={{ width: '100%', height: 200 }}
+                  resizeMode={ResizeMode.CONTAIN}
+                  useNativeControls
+                />
+                <View style={{ padding: 14, gap: 4 }}>
+                  {v.prompt ? (
+                    <Text style={{ color: TEXT1, fontSize: 13, fontWeight: '600' }} numberOfLines={2}>{v.prompt}</Text>
+                  ) : null}
+                  <Text style={{ color: TEXT3, fontSize: 11 }}>{timeAgo(v.createdAt)}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
       </ScrollView>

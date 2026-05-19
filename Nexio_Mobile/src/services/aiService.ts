@@ -119,9 +119,10 @@ export async function generate3DModel(sessionId: string): Promise<Model3DResult>
   return res.json();
 }
 
-export async function generateVideo(prompt: string, sessionId?: string): Promise<string> {
+export async function generateVideo(prompt: string, sessionId?: string, userId?: string): Promise<string> {
   const body: Record<string, string> = { prompt };
   if (sessionId) body.sessionId = sessionId;
+  if (userId) body.userId = userId;
   const res = await fetchWithTimeout(
     `${getApiUrl()}/api/generate-video`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
@@ -130,6 +131,40 @@ export async function generateVideo(prompt: string, sessionId?: string): Promise
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Video generation failed');
   const { videoUrl } = await res.json();
   return videoUrl.startsWith('http') ? videoUrl : `${getApiUrl()}${videoUrl}`;
+}
+
+export async function askAI(question: string, context: string): Promise<string> {
+  const prompt = `You are a helpful AI product listing assistant for an e-commerce seller.\n\nListing context:\n${context}\n\nUser question: ${question}\n\nAnswer concisely and helpfully. If suggesting edits, be specific.`;
+  const res = await fetchWithTimeout(
+    `${getApiUrl()}/api/generate-text`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) },
+    60_000,
+  );
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'AI request failed');
+  const { text } = await res.json();
+  return text?.trim() ?? '';
+}
+
+export interface UserVideoEntry {
+  id: string;
+  videoUrl: string;
+  prompt: string;
+  createdAt: string;
+}
+
+export async function fetchUserVideos(userId: string): Promise<UserVideoEntry[]> {
+  try {
+    const res = await fetchWithTimeout(
+      `${getApiUrl()}/api/user-videos/${userId}`,
+      { headers: {} },
+      30_000,
+    );
+    if (!res.ok) return [];
+    const { videos } = await res.json();
+    return videos ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function analyzeProductAngles(

@@ -180,9 +180,9 @@ export default function ProductsScreen() {
           >
             {/* Thumbnail row */}
             <View style={{ flexDirection: 'row' }}>
-              {kit.thumbnailUri ? (
+              {kit.thumbnailUrl ? (
                 <Image
-                  source={{ uri: kit.thumbnailUri }}
+                  source={{ uri: kit.thumbnailUrl }}
                   style={{ width: 88, height: 88 }}
                   resizeMode="cover"
                 />

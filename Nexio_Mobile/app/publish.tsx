@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Share, Linking, Alert, Image,
+  TextInput, ActivityIndicator, Share, Linking, Alert, Image, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -35,6 +35,94 @@ function generateStoreSuggestion(productName: string, category: string) {
   const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
   const tagline = `Premium ${(category || 'products').toLowerCase()}. Trusted quality.`;
   return { slug, name, tagline };
+}
+
+function StorePreviewModal({ visible, onClose, name, tagline, productName, shortDescription, keywords, imageUri, whatsapp, email }: {
+  visible: boolean; onClose: () => void;
+  name: string; tagline: string; productName: string;
+  shortDescription: string; keywords: string[];
+  imageUri?: string; whatsapp: string; email: string;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: BG, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '90%' }}>
+          {/* Modal header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Eye size={16} color={PRIMARY} />
+              <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 16 }}>Store Preview</Text>
+            </View>
+            <TouchableOpacity onPress={onClose}
+              style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' }}
+              hitSlop={10} activeOpacity={0.7}>
+              <X size={16} color={TEXT2} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 36 }}>
+            {/* Store banner */}
+            <View style={{ backgroundColor: PRIMARY, borderRadius: 18, padding: 18, marginBottom: 16, alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 20, marginBottom: 4 }}>{name || 'Your Store'}</Text>
+              {!!tagline && <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textAlign: 'center' }}>{tagline}</Text>}
+            </View>
+
+            {/* Product card */}
+            <View style={{ backgroundColor: CARD, borderRadius: 20, borderWidth: 1, borderColor: BORDER, overflow: 'hidden', marginBottom: 16 }}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={{ width: '100%', height: 220 }} resizeMode="cover" />
+              ) : (
+                <View style={{ width: '100%', height: 160, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }}>
+                  <Store size={36} color={TEXT3} />
+                </View>
+              )}
+              <View style={{ padding: 16 }}>
+                <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 16, marginBottom: 8, lineHeight: 22 }}>{productName}</Text>
+                {!!shortDescription && (
+                  <Text style={{ color: TEXT2, fontSize: 13, lineHeight: 20, marginBottom: 12 }}>{shortDescription}</Text>
+                )}
+                {keywords.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                    {keywords.slice(0, 5).map((kw, i) => (
+                      <View key={i} style={{ backgroundColor: '#F3EDE8', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ color: TEXT2, fontSize: 11 }}>{kw}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {/* Contact buttons */}
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  {!!whatsapp && (
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 13, backgroundColor: '#25D366' }}>
+                      <MessageCircle size={15} color="#fff" />
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>WhatsApp</Text>
+                    </View>
+                  )}
+                  {!!email && (
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 13, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER }}>
+                      <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 13 }}>Email</Text>
+                    </View>
+                  )}
+                  {!whatsapp && !email && (
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 13, backgroundColor: PRIMARY }}>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Contact Seller</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(232,102,74,0.08)', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={14} color={PRIMARY} />
+              <Text style={{ color: PRIMARY, fontSize: 12, flex: 1, lineHeight: 18 }}>
+                This is a preview. Publish to make it live for customers.
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 function FormField({ icon, label, hint, children, hasCheck }: {
@@ -73,6 +161,7 @@ export default function PublishScreen() {
   const [existingStore, setExistingStore] = useState<StoreInfo | null>(null);
   const [loadingStore,  setLoadingStore]  = useState(true);
   const [aiEditing, setAiEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const userId      = getDeviceUserId();
   const kitId       = `kit_${Date.now().toString(36)}`;
@@ -131,13 +220,16 @@ export default function PublishScreen() {
     }
   }
 
-  function shareWhatsApp(url: string) {
+  function shareWhatsApp(url?: string) {
+    if (!url) { Alert.alert('No link yet', 'Publish your product first.'); return; }
     const text = `Check out my product: ${url}`;
-    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`).catch(() => Share.share({ message: text }));
+    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`)
+      .catch(() => Share.share({ message: text }));
   }
 
-  function shareLink(url: string) {
-    Share.share({ message: url, url });
+  function shareLink(url?: string) {
+    if (!url) { Alert.alert('No link yet', 'Publish your product first.'); return; }
+    Share.share({ message: url, url }).catch(() => {});
   }
 
   if (published) {
@@ -194,6 +286,19 @@ export default function PublishScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
+      <StorePreviewModal
+        visible={showPreview}
+        onClose={() => setShowPreview(false)}
+        name={name}
+        tagline={tagline}
+        productName={productName}
+        shortDescription={listingResult?.global?.short_description ?? ''}
+        keywords={listingResult?.global?.keywords ?? []}
+        imageUri={pickedImage?.uri ?? variations.find(v => v.imageUrl)?.imageUrl}
+        whatsapp={whatsapp}
+        email={email}
+      />
+
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center', backgroundColor: CARD, borderBottomWidth: 1, borderColor: BORDER }}>
         <TouchableOpacity onPress={() => router.back()}
@@ -377,7 +482,7 @@ export default function PublishScreen() {
       {/* Bottom bar */}
       {!loadingStore && (
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: insets.bottom + 16, paddingTop: 12, borderTopWidth: 1, borderColor: BORDER, backgroundColor: BG, flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity activeOpacity={0.8}
+          <TouchableOpacity onPress={() => setShowPreview(true)} activeOpacity={0.8}
             style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17, borderRadius: 16, backgroundColor: CARD, borderWidth: 1.5, borderColor: BORDER }}>
             <Eye size={17} color={TEXT2} />
             <Text style={{ color: TEXT2, fontWeight: '700', fontSize: 15 }}>Preview</Text>

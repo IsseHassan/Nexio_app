@@ -68,7 +68,14 @@ router.post('/store/publish', async (req, res) => {
     { upsert: true, new: true },
   );
 
-  res.json({ ok: true, storeSlug: slug, kitId });
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.json({
+    ok: true,
+    storeSlug: slug,
+    kitId,
+    storeUrl:   `${baseUrl}/api/store/${slug}`,
+    productUrl: `${baseUrl}/api/store/${slug}/kit/${kitId}`,
+  });
 });
 
 router.get('/store/manage/:userId', async (req, res) => {

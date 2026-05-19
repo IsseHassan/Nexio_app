@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, ArrowLeft, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../src/auth/AuthContext';
+import { getServerUrl, resetServerUrl } from '../../src/services/settingsService';
 
 type ViewType = 'signin' | 'signup';
 
@@ -24,6 +25,7 @@ function Field({
   secure,
   keyboard,
   autoCapitalize,
+  textContentType,
 }: {
   label: string;
   value: string;
@@ -32,6 +34,7 @@ function Field({
   secure?: boolean;
   keyboard?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'words';
+  textContentType?: 'username' | 'emailAddress' | 'password' | 'newPassword' | 'oneTimeCode' | 'none';
 }) {
   const [show, setShow] = useState(false);
   return (
@@ -49,6 +52,8 @@ function Field({
           keyboardType={keyboard ?? 'default'}
           autoCapitalize={autoCapitalize ?? 'sentences'}
           autoCorrect={false}
+          autoComplete={secure ? 'off' : undefined}
+          textContentType={textContentType}
           style={{ paddingHorizontal: 16, paddingVertical: 14, paddingRight: secure ? 48 : 16, backgroundColor: '#F6F2EE', borderWidth: 1, borderColor: '#CFCBC7', borderRadius: 12, color: '#2B2B2B', fontSize: 14 }}
         />
         {secure && (
@@ -91,6 +96,12 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const current = getServerUrl();
+    const isStaleLocalIp = /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(current);
+    if (isStaleLocalIp) resetServerUrl();
+  }, []);
 
   function switchView(v: ViewType) {
     setView(v);
@@ -142,8 +153,8 @@ export default function LoginScreen() {
             <Text style={{ color: '#2B2B2B', fontSize: 22, fontWeight: '700', marginBottom: 4 }}>Welcome back</Text>
             <Text style={{ color: '#7A7A7A', fontSize: 14, marginBottom: 28 }}>Sign in with your username or email</Text>
 
-            <Field label="Username or Email" value={username} onChange={setUsername} placeholder="yourname or you@example.com" autoCapitalize="none" />
-            <Field label="Password" value={password} onChange={setPassword} placeholder="••••••••" secure />
+            <Field label="Username or Email" value={username} onChange={setUsername} placeholder="yourname or you@example.com" autoCapitalize="none" textContentType="username" />
+            <Field label="Password" value={password} onChange={setPassword} placeholder="••••••••" secure textContentType="password" />
 
             {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
@@ -172,8 +183,8 @@ export default function LoginScreen() {
             <Field label="Username" value={username} onChange={setUsername} placeholder="yourname" autoCapitalize="none" />
             <Field label="Email" value={email} onChange={setEmail} placeholder="you@example.com" keyboard="email-address" autoCapitalize="none" />
             <Field label="Name (optional)" value={name} onChange={setName} placeholder="Your name" autoCapitalize="words" />
-            <Field label="Password" value={password} onChange={setPassword} placeholder="Min. 8 characters" secure />
-            <Field label="Confirm password" value={confirm} onChange={setConfirm} placeholder="••••••••" secure />
+            <Field label="Password" value={password} onChange={setPassword} placeholder="Min. 8 characters" secure textContentType="newPassword" />
+            <Field label="Confirm password" value={confirm} onChange={setConfirm} placeholder="••••••••" secure textContentType="oneTimeCode" />
 
             {!!error && <Text style={{ color: '#D46A5A', fontSize: 14, marginBottom: 16 }}>{error}</Text>}
 
@@ -184,6 +195,7 @@ export default function LoginScreen() {
             </Text>
           </View>
         )}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -25,8 +25,21 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 const SKIP_NGROK = { 'ngrok-skip-browser-warning': '1' };
 
+async function fetchWithTimeout(input: RequestInfo, init?: RequestInit, ms = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw new Error('Cannot reach server — check your connection or server URL.');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function apiPost(path: string, body: object): Promise<any> {
-  const res = await fetch(`${getServerUrl()}/api${path}`, {
+  const res = await fetchWithTimeout(`${getServerUrl()}/api${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...SKIP_NGROK },
     body: JSON.stringify(body),
@@ -37,7 +50,7 @@ async function apiPost(path: string, body: object): Promise<any> {
 }
 
 async function apiGet(path: string, token: string): Promise<any> {
-  const res = await fetch(`${getServerUrl()}/api${path}`, {
+  const res = await fetchWithTimeout(`${getServerUrl()}/api${path}`, {
     headers: { Authorization: `Bearer ${token}`, ...SKIP_NGROK },
   });
   const json = await res.json();
