@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import { PORT } from './src/config.js';
+import { PORT, MONGODB_URI } from './src/config.js';
+import { connectDB } from './src/db/connection.js';
 import routes from './src/routes/index.js';
+
+if (MONGODB_URI) connectDB().catch(e => console.warn('[db] MongoDB connection failed:', e.message));
 
 const app = express();
 app.use(cors());

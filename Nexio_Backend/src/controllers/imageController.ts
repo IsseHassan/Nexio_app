@@ -1,6 +1,22 @@
 import { Router } from 'express';
 import { imageCache, withConcurrency } from '../state.js';
 import { callImageModel } from '../services/aiService.js';
+import { uploadImage } from '../services/cloudinaryService.js';
+import { CLOUDINARY_CLOUD } from '../config.js';
+
+const useCloudinary = !!CLOUDINARY_CLOUD;
+
+async function toImageUrl(base64DataUri: string): Promise<string> {
+  if (!useCloudinary) return base64DataUri;
+  const [meta, b64] = base64DataUri.split(',');
+  const mime = meta.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+  try {
+    return await uploadImage(b64, mime, 'nexio/generated');
+  } catch (err: any) {
+    console.warn('[image] Cloudinary upload failed, returning base64:', err.message);
+    return base64DataUri;
+  }
+}
 
 const router = Router();
 
@@ -45,6 +61,7 @@ router.post('/generate-image', (req, res) => {
   }
   const start = Date.now();
   withConcurrency(() => callImageModel(imgBase64, imgMimeType, prompt))
+    .then(base64DataUri => toImageUrl(base64DataUri))
     .then(imageUrl => {
       console.log(`[image] done in ${((Date.now() - start) / 1000).toFixed(1)}s`);
       res.json({ imageUrl });

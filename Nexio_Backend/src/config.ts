@@ -3,8 +3,14 @@ import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 
-export const API_KEY = process.env.GEMINI_API_KEY!;
-export const PORT    = Number(process.env.PORT) || 8080;
+export const API_KEY           = process.env.GEMINI_API_KEY!;
+export const MESHY_API_KEY     = process.env.MESHY_API_KEY ?? '';
+export const MONGODB_URI       = process.env.MONGODB_URI ?? '';
+export const CLOUDINARY_CLOUD  = process.env.CLOUDINARY_CLOUD_NAME ?? '';
+export const CLOUDINARY_KEY    = process.env.CLOUDINARY_API_KEY ?? '';
+export const CLOUDINARY_SECRET = process.env.CLOUDINARY_API_SECRET ?? '';
+export const JWT_SECRET        = process.env.JWT_SECRET || 'nexio-dev-secret-change-in-prod';
+export const PORT              = Number(process.env.PORT) || 8080;
 
 if (!API_KEY) { console.error('ERROR: GEMINI_API_KEY not set in .env'); process.exit(1); }
 
@@ -15,12 +21,8 @@ export function getAI(): GoogleGenAI {
 }
 
 export const DATA_DIR       = path.join(process.cwd(), 'data');
-export const EVENTS_FILE    = path.join(DATA_DIR, 'events.jsonl');
-export const STORES_FILE    = path.join(DATA_DIR, 'stores.json');
-export const PUB_KITS_FILE  = path.join(DATA_DIR, 'published_kits.json');
+export const VIDEOS_DIR     = path.join(DATA_DIR, 'videos');
 export const STORE_IMGS_DIR = path.join(DATA_DIR, 'store-images');
-export const CHAT_LOG_FILE  = path.join(DATA_DIR, 'chatlogs.jsonl');
-
-for (const dir of [DATA_DIR, STORE_IMGS_DIR]) {
+for (const dir of [DATA_DIR, VIDEOS_DIR, STORE_IMGS_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }

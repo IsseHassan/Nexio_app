@@ -3,8 +3,8 @@ import { appendEvent, aggregateStyles, runIntelligence } from '../services/analy
 
 const router = Router();
 
-router.post('/events', (req, res) => {
-  appendEvent({
+router.post('/events', async (req, res) => {
+  await appendEvent({
     user_id:    req.body.user_id    ?? 'anonymous',
     product_id: req.body.product_id ?? '',
     category:   req.body.category   ?? '',
@@ -17,16 +17,17 @@ router.post('/events', (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/analytics/styles', (req, res) => {
+router.get('/analytics/styles', async (req, res) => {
   const category = req.query.category as string | undefined;
-  res.json({ category: category ?? 'all', styles: aggregateStyles(category) });
+  const styles = await aggregateStyles(category);
+  res.json({ category: category ?? 'all', styles });
 });
 
 router.post('/intelligence/recommend', async (req, res) => {
   const { category, product_type } = req.body;
-  const styles = aggregateStyles(category);
+  const styles = await aggregateStyles(category);
   if (styles.length < 2) {
-    res.json({ top_recommendations: [], insights: ['Not enough data yet — keep using AdGenius to unlock insights.'], best_variant: null });
+    res.json({ top_recommendations: [], insights: ['Not enough data yet.'], best_variant: null });
     return;
   }
   try {

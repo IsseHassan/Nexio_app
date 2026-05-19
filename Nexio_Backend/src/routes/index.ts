@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { STORE_IMGS_DIR } from '../config.js';
+import { STORE_IMGS_DIR, VIDEOS_DIR } from '../config.js';
 import healthRouter    from '../controllers/healthController.js';
 import imageRouter     from '../controllers/imageController.js';
 import textRouter      from '../controllers/textController.js';
@@ -7,16 +7,24 @@ import analyticsRouter from '../controllers/analyticsController.js';
 import bulkRouter      from '../controllers/bulkController.js';
 import storeRouter     from '../controllers/storeController.js';
 import mediaRouter     from '../controllers/mediaController.js';
-
+import videoRouter     from '../controllers/videoController.js';
+import meshy3dRouter   from '../controllers/meshy3dController.js';
+import authRouter      from '../controllers/authController.js';
+import kitsRouter      from '../controllers/kitsController.js';
 const router = Router();
 
 router.use('/store-images', express.static(STORE_IMGS_DIR));
+router.use('/api/videos', express.static(VIDEOS_DIR));
 router.use('/api', healthRouter);
+router.use('/api', authRouter);
+router.use('/api', kitsRouter);
 router.use('/api', imageRouter);
 router.use('/api', textRouter);
 router.use('/api', analyticsRouter);
 router.use('/api', bulkRouter);
 router.use('/api', storeRouter);
 router.use('/api', mediaRouter);
+router.use('/api', videoRouter);
+router.use('/api', meshy3dRouter);
 
 export default router;

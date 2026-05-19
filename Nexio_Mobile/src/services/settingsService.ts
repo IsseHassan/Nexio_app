@@ -3,9 +3,18 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 const SETTINGS_FILE = `${FileSystem.documentDirectory}nexio-settings.json`;
 
-const _defaultUrl =
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? 'http://localhost:8080';
+function getDefaultUrl(): string {
+  const configured = Constants.expoConfig?.extra?.apiUrl as string | undefined;
+  if (configured) return configured;
+  // In Expo Go, debuggerHost is the Metro bundler host — same machine as the backend
+  const metroHost = (Constants.expoGoConfig as any)?.debuggerHost?.split(':')[0];
+  if (metroHost && metroHost !== 'localhost' && metroHost !== '127.0.0.1') {
+    return `http://${metroHost}:8080`;
+  }
+  return 'http://localhost:8080';
+}
 
+const _defaultUrl = getDefaultUrl();
 let _serverUrl = _defaultUrl;
 
 export async function loadSettings(): Promise<void> {

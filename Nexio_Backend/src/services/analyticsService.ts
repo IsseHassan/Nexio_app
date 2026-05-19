@@ -1,27 +1,25 @@
-import fs from 'fs';
-import { EVENTS_FILE } from '../config.js';
+import { MONGODB_URI } from '../config.js';
+import { Event } from '../models/Event.js';
 import { callTextModel } from './aiService.js';
 import type { EventLog, StyleStat } from '../types.js';
 
-export function appendEvent(event: EventLog): void {
-  try { fs.appendFileSync(EVENTS_FILE, JSON.stringify(event) + '\n'); }
-  catch (e) { console.warn('[analytics] append failed:', e); }
+const useMongo = !!MONGODB_URI;
+
+export async function appendEvent(event: EventLog): Promise<void> {
+  if (!useMongo) return;
+  try { await Event.create(event); } catch (e) { console.warn('[analytics] insert failed:', e); }
 }
 
-export function readEvents(): EventLog[] {
-  try {
-    return fs.readFileSync(EVENTS_FILE, 'utf-8')
-      .trim().split('\n').filter(Boolean).map(l => JSON.parse(l));
-  } catch { return []; }
+export async function readEvents(category?: string): Promise<EventLog[]> {
+  if (!useMongo) return [];
+  const filter = category ? { category: new RegExp(`^${category}$`, 'i') } : {};
+  return Event.find(filter).lean() as Promise<EventLog[]>;
 }
 
-export function aggregateStyles(category?: string): StyleStat[] {
-  const events = readEvents();
-  const relevant = category
-    ? events.filter(e => e.category.toLowerCase() === category.toLowerCase())
-    : events;
+export async function aggregateStyles(category?: string): Promise<StyleStat[]> {
+  const events = await readEvents(category);
   const map = new Map<string, { downloads: number; favorites: number; copies: number }>();
-  for (const e of relevant) {
+  for (const e of events) {
     if (!e.style) continue;
     if (!map.has(e.style)) map.set(e.style, { downloads: 0, favorites: 0, copies: 0 });
     const s = map.get(e.style)!;
@@ -36,7 +34,7 @@ export function aggregateStyles(category?: string): StyleStat[] {
   return raw.map(s => ({ ...s, score: parseFloat(((s.score / maxScore) * 5).toFixed(2)) }));
 }
 
-const INTELLIGENCE_PROMPT = `You are AdGenius Intelligence Engine. Analyze user interaction data and return actionable recommendations.
+const INTELLIGENCE_PROMPT = `You are Nexio Intelligence Engine. Analyze user interaction data and return actionable recommendations.
 Scoring: score=(downloads*0.5)+(favorites*0.3)+(copies*0.2), normalized 0-5. Confidence: High/Medium/Low.
 Return ONLY valid JSON, no markdown:
 {"top_recommendations":[{"style":"","conversion_score":0,"confidence":"","usage_count":0,"reason":""}],"insights":[""],"best_variant":{"variant_id":"","style":"","reason":""}}`;

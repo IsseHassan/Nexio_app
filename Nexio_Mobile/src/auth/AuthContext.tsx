@@ -1,95 +1,102 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import * as mock from './mockAuth';
-import type { MockUser, Session } from './mockAuth';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getServerUrl } from '../services/settingsService';
+
+const TOKEN_FILE = `${FileSystem.documentDirectory}nexio_token.txt`;
+
+export interface AppUser {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+}
 
 interface AuthCtx {
-  user: MockUser | null;
-  session: Session | null;
+  user: AppUser | null;
+  token: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => { error?: string };
-  signUp: (email: string, password: string, name?: string) => { error?: string };
-  signInWithOAuth: (provider: 'google' | 'apple') => void;
-  sendMagicLink: (email: string) => void;
-  verifyMagicLink: (token: string) => { error?: string };
-  sendPasswordReset: (email: string) => { error?: string };
-  resetPassword: (token: string, newPass: string) => { error?: string };
-  verifyEmail: () => void;
-  signOut: () => void;
+  signIn: (usernameOrEmail: string, password: string) => Promise<{ error?: string }>;
+  signUp: (username: string, email: string, password: string, name?: string) => Promise<{ error?: string }>;
+  signOut: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+const SKIP_NGROK = { 'ngrok-skip-browser-warning': '1' };
+
+async function apiPost(path: string, body: object): Promise<any> {
+  const res = await fetch(`${getServerUrl()}/api${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...SKIP_NGROK },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? `Request failed (${res.status})`);
+  return json;
+}
+
+async function apiGet(path: string, token: string): Promise<any> {
+  const res = await fetch(`${getServerUrl()}/api${path}`, {
+    headers: { Authorization: `Bearer ${token}`, ...SKIP_NGROK },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? `Request failed (${res.status})`);
+  return json;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In-memory mock: check if a session exists (only survives hot-reload)
-    setSession(mock.getSession());
-    setLoading(false);
+    FileSystem.readAsStringAsync(TOKEN_FILE).then(async (storedToken) => {
+      if (!storedToken) { setLoading(false); return; }
+      try {
+        const { user: u } = await apiGet('/auth/me', storedToken);
+        setToken(storedToken);
+        setUser(u);
+      } catch {
+        await FileSystem.deleteAsync(TOKEN_FILE, { idempotent: true });
+      } finally {
+        setLoading(false);
+      }
+    }).catch(() => setLoading(false));
   }, []);
 
-  const signIn = useCallback((email: string, password: string) => {
-    const { session: s, error } = mock.signIn(email, password);
-    if (s) setSession(s);
-    return { error };
+  const signIn = useCallback(async (usernameOrEmail: string, password: string) => {
+    try {
+      const { token: t, user: u } = await apiPost('/auth/login', { usernameOrEmail, password });
+      await FileSystem.writeAsStringAsync(TOKEN_FILE, t);
+      setToken(t);
+      setUser(u);
+      return {};
+    } catch (err: any) {
+      return { error: err.message };
+    }
   }, []);
 
-  const signUp = useCallback((email: string, password: string, name?: string) => {
-    const { session: s, error } = mock.signUp(email, password, name);
-    if (s) setSession(s);
-    return { error };
+  const signUp = useCallback(async (username: string, email: string, password: string, name?: string) => {
+    try {
+      const { token: t, user: u } = await apiPost('/auth/signup', { username, email, password, name });
+      await FileSystem.writeAsStringAsync(TOKEN_FILE, t);
+      setToken(t);
+      setUser(u);
+      return {};
+    } catch (err: any) {
+      return { error: err.message };
+    }
   }, []);
 
-  const signInWithOAuth = useCallback((provider: 'google' | 'apple') => {
-    const s = mock.signInWithOAuth(provider);
-    setSession(s);
-  }, []);
-
-  const sendMagicLink = useCallback((email: string) => {
-    mock.sendMagicLink(email);
-  }, []);
-
-  const verifyMagicLink = useCallback((token: string) => {
-    const { session: s, error } = mock.verifyMagicLink(token);
-    if (s) setSession(s);
-    return { error };
-  }, []);
-
-  const sendPasswordReset = useCallback((email: string) => {
-    return mock.sendPasswordReset(email);
-  }, []);
-
-  const resetPassword = useCallback((token: string, newPass: string) => {
-    return mock.resetPassword(token, newPass);
-  }, []);
-
-  const verifyEmail = useCallback(() => {
-    if (!session) return;
-    mock.verifyEmail(session.user.id);
-    setSession(s => s ? { ...s, user: { ...s.user, emailVerified: true } } : null);
-  }, [session]);
-
-  const signOut = useCallback(() => {
-    mock.signOut();
-    setSession(null);
+  const signOut = useCallback(async () => {
+    await FileSystem.deleteAsync(TOKEN_FILE, { idempotent: true });
+    setToken(null);
+    setUser(null);
   }, []);
 
   return (
-    <Ctx.Provider value={{
-      user: session?.user ?? null,
-      session,
-      loading,
-      signIn,
-      signUp,
-      signInWithOAuth,
-      sendMagicLink,
-      verifyMagicLink,
-      sendPasswordReset,
-      resetPassword,
-      verifyEmail,
-      signOut,
-    }}>
+    <Ctx.Provider value={{ user, token, loading, signIn, signUp, signOut }}>
       {children}
     </Ctx.Provider>
   );

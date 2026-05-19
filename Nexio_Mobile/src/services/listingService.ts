@@ -55,6 +55,7 @@ export interface ListingParams {
   language?: Language;
   tone?: Tone;
   length?: ListingLength;
+  userDescription?: string;
 }
 
 function getApiUrl(): string {
@@ -121,6 +122,7 @@ export async function generateListing(params: ListingParams): Promise<ListingRes
     `language: ${params.language ?? 'English'}`,
     `tone: ${params.tone ?? 'professional'}`,
     `length: ${params.length ?? 'medium'}`,
+    ...(params.userDescription ? [`seller notes: ${params.userDescription}`] : []),
   ].join('\n');
 
   const url = `${getApiUrl()}/api/generate-text`;

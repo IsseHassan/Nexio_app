@@ -7,11 +7,17 @@ function getApiUrl(): string {
   return getServerUrl();
 }
 
+const COMMON_HEADERS = { 'ngrok-skip-browser-warning': '1' };
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, {
+      ...options,
+      headers: { ...COMMON_HEADERS, ...(options.headers ?? {}) },
+      signal: controller.signal,
+    });
   } finally {
     clearTimeout(id);
   }
@@ -96,15 +102,34 @@ export async function transcribeVoice(audioBase64: string, mimeType = 'audio/m4a
   return transcript as string;
 }
 
-export async function analyzeVideoDescription(videoUri: string): Promise<string> {
-  const uploadResult = await FileSystem.uploadAsync(
-    `${getApiUrl()}/api/media/upload-video`,
-    videoUri,
-    { httpMethod: 'POST', uploadType: FileSystem.FileSystemUploadType.MULTIPART, fieldName: 'video' },
+
+export interface Model3DResult {
+  thumbnailUrl: string;
+  videoUrl: string;
+  modelUrls: { glb: string; obj?: string; usdz?: string };
+}
+
+export async function generate3DModel(sessionId: string): Promise<Model3DResult> {
+  const res = await fetchWithTimeout(
+    `${getApiUrl()}/api/generate-3d`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) },
+    420_000,
   );
-  const data = JSON.parse(uploadResult.body);
-  if (uploadResult.status >= 400) throw new Error(data.error ?? 'Video analysis failed');
-  return data.description as string;
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? '3D generation failed');
+  return res.json();
+}
+
+export async function generateVideo(prompt: string, sessionId?: string): Promise<string> {
+  const body: Record<string, string> = { prompt };
+  if (sessionId) body.sessionId = sessionId;
+  const res = await fetchWithTimeout(
+    `${getApiUrl()}/api/generate-video`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+    360_000,
+  );
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Video generation failed');
+  const { videoUrl } = await res.json();
+  return videoUrl.startsWith('http') ? videoUrl : `${getApiUrl()}${videoUrl}`;
 }
 
 export async function analyzeProductAngles(

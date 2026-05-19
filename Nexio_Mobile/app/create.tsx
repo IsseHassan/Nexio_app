@@ -12,11 +12,11 @@ import {
   X, ChevronRight, Star, Image as ImageIcon, FileText, Hash, Package,
   Sofa, Gem, Smartphone, Shirt, ShoppingBag, Sparkles, Coffee, Home,
   Heart, Scissors, Dumbbell, BookOpen, Gift, Lamp, Palette,
-  Video, Mic, MicOff, Plus, Trash2,
+  Mic, MicOff, Plus,
 } from 'lucide-react-native';
 import { useAdStore, type GenerationGoal } from '../src/store/adStore';
 import { CATEGORIES } from '../src/constants';
-import { transcribeVoice, analyzeVideoDescription } from '../src/services/aiService';
+import { transcribeVoice } from '../src/services/aiService';
 
 const BG      = '#EDE4DC';
 const CARD    = '#F6F2EE';
@@ -43,18 +43,17 @@ type RecordState = 'idle' | 'recording' | 'processing';
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();
   const {
-    pickedImage, angleImages, videoAsset, mediaType, productText, voiceTranscript,
+    pickedImage, angleImages, productText, voiceTranscript,
     selectedCategory,
-    setPickedImage, addAngleImage, removeAngleImage, setAngleImages,
-    setVideoAsset, setMediaType, setProductText, setVoiceTranscript,
+    setPickedImage, addAngleImage, removeAngleImage,
+    setProductText, setVoiceTranscript,
     setCategory, setGoal,
   } = useAdStore();
 
-  const [step, setStep]               = useState<1 | 2>(1);
+  const [step, setStep]                = useState<1 | 2>(1);
   const [selectedGoal, setSelectedGoal] = useState('full');
-  const [uploading, setUploading]     = useState(false);
-  const [analyzingVideo, setAnalyzingVideo] = useState(false);
-  const [recordState, setRecordState] = useState<RecordState>('idle');
+  const [uploading, setUploading]      = useState(false);
+  const [recordState, setRecordState]  = useState<RecordState>('idle');
   const [recordDuration, setRecordDuration] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,40 +103,11 @@ export default function CreateScreen() {
     }
   }
 
-  async function pickVideo() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
-    setUploading(true);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'] as any,
-      quality: 0.5,
-    });
-    setUploading(false);
-    if (!result.canceled && result.assets[0]) {
-      const a = result.assets[0];
-      const name = a.uri.split('/').pop() ?? 'video.mp4';
-      setVideoAsset({ uri: a.uri, mimeType: a.mimeType ?? 'video/mp4', name });
-    }
-  }
-
-  async function analyzeVideo() {
-    if (!videoAsset) return;
-    setAnalyzingVideo(true);
-    try {
-      const desc = await analyzeVideoDescription(videoAsset.uri);
-      setProductText(desc);
-    } catch (e: any) {
-      Alert.alert('Analysis failed', e.message ?? 'Could not analyze video');
-    } finally {
-      setAnalyzingVideo(false);
-    }
-  }
-
   async function startRecording() {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) { Alert.alert('Permission required', 'Allow microphone access to record voice.'); return; }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true }); } catch {}
       const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
       setRecordState('recording');
@@ -154,7 +124,7 @@ export default function CreateScreen() {
     setRecordState('processing');
     try {
       await recordingRef.current.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
       const uri = recordingRef.current.getURI()!;
       const ext  = uri.split('.').pop()?.toLowerCase() ?? 'm4a';
       const mime = ext === 'm4a' ? 'audio/m4a' : ext === 'amr' ? 'audio/amr' : 'audio/mpeg';
@@ -177,8 +147,7 @@ export default function CreateScreen() {
 
   function handleContinue() {
     if (step === 1) {
-      const hasMedia = mediaType === 'photo' ? !!pickedImage : !!videoAsset;
-      if (!hasMedia && !productText.trim()) return;
+      if (!pickedImage && !productText.trim()) return;
       setStep(2);
     } else {
       setGoal(selectedGoal as GenerationGoal);
@@ -186,8 +155,7 @@ export default function CreateScreen() {
     }
   }
 
-  const hasMedia = mediaType === 'photo' ? !!pickedImage : !!videoAsset;
-  const canContinue = step === 1 ? (hasMedia || productText.trim().length > 0) : true;
+  const canContinue = step === 1 ? (!!pickedImage || productText.trim().length > 0) : true;
   const fmtDuration = `${Math.floor(recordDuration / 60)}:${String(recordDuration % 60).padStart(2, '0')}`;
 
   return (
@@ -213,156 +181,71 @@ export default function CreateScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
 
+        {/* ── Step 1: Upload ── */}
         {step === 1 && (
           <>
             <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 22, letterSpacing: -0.5, marginBottom: 4 }}>
               Upload your product
             </Text>
             <Text style={{ color: TEXT2, fontSize: 13, marginBottom: 18 }}>
-              Add a photo, video, or describe it with text or voice
+              Add a photo or describe it with text or voice
             </Text>
 
-            {/* Media type tabs */}
-            <View style={{ flexDirection: 'row', backgroundColor: CARD, borderRadius: 14, padding: 4, marginBottom: 16, borderWidth: 1, borderColor: BORDER }}>
-              {(['photo', 'video'] as const).map(t => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => setMediaType(t)}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                    gap: 6, paddingVertical: 10, borderRadius: 10,
-                    backgroundColor: mediaType === t ? PRIMARY : 'transparent',
-                  }}
-                >
-                  {t === 'photo'
-                    ? <ImageIcon size={15} color={mediaType === t ? '#fff' : TEXT2} strokeWidth={2} />
-                    : <Video     size={15} color={mediaType === t ? '#fff' : TEXT2} strokeWidth={2} />
-                  }
-                  <Text style={{ color: mediaType === t ? '#fff' : TEXT2, fontSize: 13, fontWeight: '600' }}>
-                    {t === 'photo' ? 'Photo' : 'Video'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* ── Photo mode ── */}
-            {mediaType === 'photo' && (
-              <>
-                <TouchableOpacity
-                  onPress={pickImage}
-                  activeOpacity={0.8}
-                  style={{
-                    height: 200, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
-                    borderColor: pickedImage ? PRIMARY : BORDER,
-                    backgroundColor: pickedImage ? 'rgba(232,102,74,0.06)' : CARD,
-                    alignItems: 'center', justifyContent: 'center', marginBottom: 14, overflow: 'hidden',
-                  }}
-                >
-                  {uploading
-                    ? <ActivityIndicator color={PRIMARY} />
-                    : pickedImage
-                      ? <Image source={{ uri: pickedImage.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                      : (
-                        <View style={{ alignItems: 'center', gap: 10 }}>
-                          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(232,102,74,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                            <ImageIcon size={24} color={PRIMARY} strokeWidth={1.7} />
-                          </View>
-                          <Text style={{ color: TEXT1, fontWeight: '600', fontSize: 15 }}>Tap to upload photo</Text>
-                          <Text style={{ color: TEXT3, fontSize: 12 }}>JPG, PNG up to 20MB</Text>
-                        </View>
-                      )
-                  }
-                </TouchableOpacity>
-
-                {/* Additional angles */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ color: TEXT2, fontSize: 12, fontWeight: '600', marginBottom: 10 }}>
-                    Add more angles (optional)
-                  </Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {angleImages.map((img, idx) => (
-                      <View key={idx} style={{ width: 72, height: 72, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                        <Image source={{ uri: img.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                        <TouchableOpacity
-                          onPress={() => removeAngleImage(idx)}
-                          style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          <X size={10} color="#fff" strokeWidth={2.5} />
-                        </TouchableOpacity>
+            {/* Main image picker */}
+            <TouchableOpacity
+              onPress={pickImage}
+              activeOpacity={0.8}
+              style={{
+                height: 200, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
+                borderColor: pickedImage ? PRIMARY : BORDER,
+                backgroundColor: pickedImage ? 'rgba(232,102,74,0.06)' : CARD,
+                alignItems: 'center', justifyContent: 'center', marginBottom: 14, overflow: 'hidden',
+              }}
+            >
+              {uploading
+                ? <ActivityIndicator color={PRIMARY} />
+                : pickedImage
+                  ? <Image source={{ uri: pickedImage.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  : (
+                    <View style={{ alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(232,102,74,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                        <ImageIcon size={24} color={PRIMARY} strokeWidth={1.7} />
                       </View>
-                    ))}
-                    {angleImages.length < 3 && (
-                      <TouchableOpacity
-                        onPress={pickAngleImage}
-                        activeOpacity={0.8}
-                        style={{ width: 72, height: 72, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: BORDER, backgroundColor: CARD, alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <Plus size={20} color={TEXT3} strokeWidth={2} />
-                      </TouchableOpacity>
-                    )}
+                      <Text style={{ color: TEXT1, fontWeight: '600', fontSize: 15 }}>Tap to upload photo</Text>
+                      <Text style={{ color: TEXT3, fontSize: 12 }}>JPG, PNG up to 20MB</Text>
+                    </View>
+                  )
+              }
+            </TouchableOpacity>
+
+            {/* Additional angles */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: TEXT2, fontSize: 12, fontWeight: '600', marginBottom: 10 }}>
+                Add more angles (optional)
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {angleImages.map((img, idx) => (
+                  <View key={idx} style={{ width: 72, height: 72, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                    <Image source={{ uri: img.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    <TouchableOpacity
+                      onPress={() => removeAngleImage(idx)}
+                      style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={10} color="#fff" strokeWidth={2.5} />
+                    </TouchableOpacity>
                   </View>
-                </View>
-              </>
-            )}
-
-            {/* ── Video mode ── */}
-            {mediaType === 'video' && (
-              <>
-                <TouchableOpacity
-                  onPress={pickVideo}
-                  activeOpacity={0.8}
-                  style={{
-                    height: 200, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed',
-                    borderColor: videoAsset ? PRIMARY : BORDER,
-                    backgroundColor: videoAsset ? 'rgba(232,102,74,0.06)' : CARD,
-                    alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden',
-                  }}
-                >
-                  {uploading
-                    ? <ActivityIndicator color={PRIMARY} />
-                    : videoAsset
-                      ? (
-                        <View style={{ alignItems: 'center', gap: 8 }}>
-                          <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(232,102,74,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                            <Video size={26} color={PRIMARY} strokeWidth={1.7} />
-                          </View>
-                          <Text style={{ color: TEXT1, fontWeight: '600', fontSize: 14 }} numberOfLines={1}>
-                            {videoAsset.name ?? 'Video selected'}
-                          </Text>
-                          <Text style={{ color: TEXT2, fontSize: 12 }}>Tap to change</Text>
-                        </View>
-                      )
-                      : (
-                        <View style={{ alignItems: 'center', gap: 10 }}>
-                          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(232,102,74,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                            <Video size={24} color={PRIMARY} strokeWidth={1.7} />
-                          </View>
-                          <Text style={{ color: TEXT1, fontWeight: '600', fontSize: 15 }}>Select video</Text>
-                          <Text style={{ color: TEXT3, fontSize: 12 }}>MP4, MOV up to 500MB</Text>
-                        </View>
-                      )
-                  }
-                </TouchableOpacity>
-
-                {videoAsset && (
+                ))}
+                {angleImages.length < 3 && (
                   <TouchableOpacity
-                    onPress={analyzeVideo}
-                    disabled={analyzingVideo}
+                    onPress={pickAngleImage}
                     activeOpacity={0.8}
-                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 14, backgroundColor: 'rgba(232,102,74,0.1)', borderWidth: 1, borderColor: 'rgba(232,102,74,0.3)', marginBottom: 16 }}
+                    style={{ width: 72, height: 72, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: BORDER, backgroundColor: CARD, alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {analyzingVideo
-                      ? <ActivityIndicator size="small" color={PRIMARY} />
-                      : <Sparkles size={16} color={PRIMARY} strokeWidth={1.8} />
-                    }
-                    <Text style={{ color: PRIMARY, fontWeight: '600', fontSize: 14 }}>
-                      {analyzingVideo ? 'Analyzing video…' : 'Analyze with AI'}
-                    </Text>
+                    <Plus size={20} color={TEXT3} strokeWidth={2} />
                   </TouchableOpacity>
                 )}
-              </>
-            )}
+              </View>
+            </View>
 
             {/* Description + voice record */}
             <View style={{ backgroundColor: CARD, borderRadius: 16, borderWidth: 1, borderColor: BORDER, marginBottom: 20 }}>
@@ -388,7 +271,7 @@ export default function CreateScreen() {
                     <Animated.View style={{
                       transform: [{ scale: pulseAnim }],
                       width: 36, height: 36, borderRadius: 18,
-                      backgroundColor: '#E8664A',
+                      backgroundColor: PRIMARY,
                       alignItems: 'center', justifyContent: 'center',
                     }}>
                       <MicOff size={16} color="#fff" strokeWidth={2} />

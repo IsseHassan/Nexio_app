@@ -1,15 +1,25 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Dimensions } from 'react-native';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, Image,
+  TextInput, Dimensions, Alert, ActivityIndicator, Animated,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, Image as ImageIcon, Mic, Sparkles, Package,
-  ChevronRight, FileText, Share2, Megaphone, Hash,
+  ChevronRight, FileText, Share2, Megaphone, Hash, MicOff, X,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAdStore } from '../../src/store/adStore';
 import { useAuth } from '../../src/auth/AuthContext';
 import { loadHistory, loadKitFull, type KitEntry } from '../../src/services/historyService';
+import { transcribeVoice } from '../../src/services/aiService';
+import { analyzeProductQuick } from '../../src/services/analyzeService';
+import { Image3DViewer } from '../../src/components/Image3DViewer';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -19,6 +29,7 @@ const ACCENT = '#E8664A';
 const TEXT1 = '#2B2B2B';
 const TEXT2 = '#7A7A7A';
 const TEXT3 = '#ADADAD';
+const BORDER = '#E0DAD4';
 
 const GOAL_ITEMS = [
   { id: 'Full Kit',  label: 'Full Kit', Icon: Sparkles },
@@ -46,16 +57,126 @@ function timeAgo(iso: string): string {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { pickedImage } = useAdStore();
+  const { pickedImage, setPickedImage, setProductText, setGoal, productText } = useAdStore();
   const restoreKit = useAdStore(s => s.restoreKit);
   const { user } = useAuth();
   const [recentKits, setRecentKits] = useState<KitEntry[]>([]);
   const [selectedGoal, setSelectedGoal] = useState('Full Kit');
-  const [aiQuery, setAiQuery] = useState('');
+  const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [show3D, setShow3D] = useState(false);
+  const [micState, setMicState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const [recordDuration, setRecordDuration] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useFocusEffect(useCallback(() => {
     loadHistory().then(h => setRecentKits(h.slice(0, 6)));
   }, []));
+
+  useEffect(() => {
+    if (micState === 'recording') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.25, duration: 550, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1,    duration: 550, useNativeDriver: true }),
+        ]),
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [micState]);
+
+  async function pickImage() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    setUploading(true);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as any,
+      quality: 0.5,
+      base64: true,
+    });
+    setUploading(false);
+    if (!result.canceled && result.assets[0]) {
+      const a = result.assets[0];
+      setPickedImage({ base64: a.base64!, mimeType: a.mimeType ?? 'image/jpeg', uri: a.uri });
+      setShow3D(false);
+    }
+  }
+
+  async function analyzeImage() {
+    if (!pickedImage?.base64) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${require('expo-constants').default.expoConfig?.extra?.apiUrl ?? 'http://localhost:8080'}/api/generate-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Look at this image and write a single professional description (2-3 sentences) that captures what it shows, its purpose, key visual elements, and tone. Write it as if briefing a designer or copywriter. Be specific and professional. Return only the description, no labels or JSON.`,
+          image: { base64: pickedImage.base64, mimeType: pickedImage.mimeType },
+        }),
+      });
+      const { text } = await res.json();
+      if (text?.trim()) setDescription(text.trim());
+    } catch {
+      Alert.alert('Analysis failed', 'Could not analyze image. Please describe it manually.');
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  async function startMic() {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) { Alert.alert('Permission required', 'Allow microphone access in your device settings.'); return; }
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true }); } catch {}
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setMicState('recording');
+      setRecordDuration(0);
+      timerRef.current = setInterval(() => setRecordDuration(d => d + 1), 1000);
+    } catch (e: any) {
+      Alert.alert('Could not start recording', e?.message ?? String(e));
+    }
+  }
+
+  async function stopMic() {
+    if (!recordingRef.current) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setMicState('processing');
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch {}
+      const uri = recordingRef.current.getURI()!;
+      recordingRef.current = null;
+      const ext  = uri.split('.').pop()?.toLowerCase() ?? 'm4a';
+      const mime = ext === 'm4a' ? 'audio/m4a' : 'audio/mpeg';
+      const b64  = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const transcript = await transcribeVoice(b64, mime);
+      setDescription(transcript);
+    } catch (e: any) {
+      Alert.alert('Transcription failed', e?.message ?? 'Could not understand audio.');
+    } finally {
+      setMicState('idle');
+    }
+  }
+
+  function toggleMic() {
+    if (micState === 'idle') startMic();
+    else if (micState === 'recording') stopMic();
+  }
+
+  function handleGenerate() {
+    if (!pickedImage) { pickImage(); return; }
+    setProductText(description);
+    const goalMap: Record<string, any> = {
+      'Full Kit': 'full', 'Photos': 'images', 'Listing': 'listing', 'Social': 'social',
+    };
+    setGoal(goalMap[selectedGoal] ?? 'full');
+    router.push('/generate');
+  }
 
   async function openKit(entry: KitEntry) {
     const full = await loadKitFull(entry.id);
@@ -64,13 +185,27 @@ export default function HomeScreen() {
     router.push('/kit');
   }
 
+  function kitProgress(kit: KitEntry): number {
+    let done = 0;
+    if (kit.imageCount > 0) done++;
+    if (kit.hasListing) done++;
+    if (kit.hasSocial) done++;
+    return Math.round((done / 3) * 100);
+  }
+
   const currentKit = recentKits[0] ?? null;
+  const fmtDuration = `${Math.floor(recordDuration / 60)}:${String(recordDuration % 60).padStart(2, '0')}`;
+  const CARD_SIZE = SW - 32;
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: BG }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 32, paddingTop: insets.top }}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}>
@@ -87,69 +222,132 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Hero card */}
-        <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: CARD, borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}>
-          <View style={{ flexDirection: 'row' }}>
-            {/* Left: text + upload button */}
-            <View style={{ flex: 1.1, padding: 20, paddingRight: 12 }}>
-              <Text style={{ color: TEXT1, fontSize: 20, fontWeight: '800', letterSpacing: -0.4, lineHeight: 26, marginBottom: 8 }}>
-                What are you{'\n'}creating?
-              </Text>
-              <Text style={{ color: TEXT2, fontSize: 12, lineHeight: 18, marginBottom: 18 }}>
-                Upload a product or describe it and let AI do the magic.
-              </Text>
+        {/* ── Create Card ── */}
+        <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: CARD, borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}>
+
+          {/* Image area */}
+          {pickedImage ? (
+            <View style={{ width: CARD_SIZE, height: CARD_SIZE * 0.62, backgroundColor: show3D ? '#161616' : '#E8DDD4', alignItems: 'center', justifyContent: 'center' }}>
+              {show3D ? (
+                <Image3DViewer imageUri={pickedImage.uri} size={CARD_SIZE * 0.58} />
+              ) : (
+                <Image source={{ uri: pickedImage.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              )}
+
+              {/* Top action row */}
+              <View style={{ position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row', justifyContent: 'space-between' }}>
+                {/* Change photo */}
+                <TouchableOpacity onPress={pickImage} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}>
+                  <ImageIcon size={13} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Change</Text>
+                </TouchableOpacity>
+
+                {/* 3D toggle */}
+                <TouchableOpacity
+                  onPress={() => setShow3D(v => !v)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: show3D ? ACCENT : 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{show3D ? '3D ON' : '3D'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Remove */}
               <TouchableOpacity
-                onPress={() => router.push('/create')}
-                activeOpacity={0.8}
-                style={{ borderWidth: 1.5, borderColor: ACCENT, borderStyle: 'dashed', borderRadius: 14, paddingVertical: 16, alignItems: 'center', gap: 8 }}
+                onPress={() => { setPickedImage(null); setShow3D(false); }}
+                style={{ position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}
               >
-                <View style={{ position: 'relative', width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }}>
-                  <ImageIcon size={28} color={ACCENT} strokeWidth={1.6} />
-                  <View style={{ position: 'absolute', bottom: -2, right: -3, width: 14, height: 14, borderRadius: 7, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', lineHeight: 14 }}>+</Text>
+                <X size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={pickImage}
+              activeOpacity={0.8}
+              style={{ width: CARD_SIZE, height: CARD_SIZE * 0.5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0EAE4' }}
+            >
+              {uploading ? (
+                <ActivityIndicator color={ACCENT} size="large" />
+              ) : (
+                <View style={{ alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: `${ACCENT}18`, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: `${ACCENT}40`, borderStyle: 'dashed' }}>
+                    <ImageIcon size={28} color={ACCENT} strokeWidth={1.6} />
                   </View>
+                  <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 16 }}>Upload Product Photo</Text>
+                  <Text style={{ color: TEXT2, fontSize: 12 }}>Tap to pick from gallery</Text>
                 </View>
-                <Text style={{ color: ACCENT, fontSize: 12, fontWeight: '600' }}>Upload Product Photo</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Description + voice row */}
+          <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: BG, borderRadius: 14, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 12, paddingVertical: 10 }}>
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Describe your product (optional)…"
+                placeholderTextColor={TEXT3}
+                style={{ flex: 1, color: TEXT1, fontSize: 13.5, paddingVertical: 0 }}
+                returnKeyType="done"
+              />
+              {description.length > 0 && (
+                <TouchableOpacity onPress={() => setDescription('')} hitSlop={8}>
+                  <X size={14} color={TEXT3} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={toggleMic} disabled={micState === 'processing'} activeOpacity={0.8}>
+                {micState === 'processing' ? (
+                  <ActivityIndicator size="small" color={ACCENT} />
+                ) : micState === 'recording' ? (
+                  <Animated.View style={{ transform: [{ scale: pulseAnim }], width: 32, height: 32, borderRadius: 16, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center' }}>
+                    <MicOff size={15} color="#fff" strokeWidth={2} />
+                  </Animated.View>
+                ) : (
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: `${ACCENT}18`, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: `${ACCENT}40` }}>
+                    <Mic size={15} color={ACCENT} strokeWidth={2} />
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
 
-            {/* Right: product image */}
-            <View style={{ flex: 1, alignSelf: 'stretch', overflow: 'hidden', minHeight: 220 }}>
-              {pickedImage ? (
-                <Image source={{ uri: pickedImage.uri }} style={{ flex: 1, width: '100%' }} resizeMode="cover" />
-              ) : (
-                <View style={{ flex: 1, backgroundColor: '#E8DDD4', alignItems: 'center', justifyContent: 'center' }}>
-                  <Package size={36} color="rgba(140,110,80,0.25)" />
-                </View>
-              )}
-            </View>
+            {micState === 'recording' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, marginLeft: 4 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#E84A4A' }} />
+                <Text style={{ color: '#E84A4A', fontSize: 11, fontWeight: '600' }}>Recording {fmtDuration} — tap mic to stop</Text>
+              </View>
+            )}
+
+            {/* Analyze with AI button — shown when image picked and no description yet */}
+            {pickedImage && !analyzing && (
+              <TouchableOpacity
+                onPress={analyzeImage}
+                activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(232,102,74,0.1)', borderWidth: 1, borderColor: 'rgba(232,102,74,0.25)' }}
+              >
+                <Sparkles size={14} color={ACCENT} strokeWidth={1.8} />
+                <Text style={{ color: ACCENT, fontSize: 13, fontWeight: '700' }}>Analyze image — generate prompt</Text>
+              </TouchableOpacity>
+            )}
+            {analyzing && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, paddingVertical: 10 }}>
+                <ActivityIndicator size="small" color={ACCENT} />
+                <Text style={{ color: ACCENT, fontSize: 13, fontWeight: '600' }}>Analyzing your image…</Text>
+              </View>
+            )}
           </View>
 
-          {/* AI input row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', gap: 8, backgroundColor: CARD }}>
-            <TouchableOpacity onPress={() => router.push('/create')} style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
-              <ImageIcon size={15} color={TEXT3} strokeWidth={1.5} />
-            </TouchableOpacity>
-            <TextInput
-              value={aiQuery}
-              onChangeText={setAiQuery}
-              placeholder="Ask AI to generate content..."
-              placeholderTextColor={TEXT3}
-              style={{ flex: 1, color: TEXT1, fontSize: 13.5, paddingVertical: 0 }}
-              returnKeyType="send"
-              onSubmitEditing={() => { if (aiQuery.trim()) router.push('/create'); }}
-            />
-            <TouchableOpacity style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
-              <Mic size={17} color={TEXT2} strokeWidth={1.5} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/create')} activeOpacity={0.85}>
+          {/* Generate button */}
+          <View style={{ padding: 14, paddingTop: 10 }}>
+            <TouchableOpacity onPress={handleGenerate} activeOpacity={0.85}>
               <LinearGradient
                 colors={['#F07848', ACCENT]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 16 }}
               >
-                <Sparkles size={18} color="#fff" />
+                <Sparkles size={17} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
+                  {pickedImage ? 'Generate Kit' : 'Upload & Generate'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -180,8 +378,8 @@ export default function HomeScreen() {
             activeOpacity={0.85}
             style={{ marginHorizontal: 16, marginBottom: 22, backgroundColor: CARD, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } }}
           >
-            {currentKit.thumbnailUri ? (
-              <Image source={{ uri: currentKit.thumbnailUri }} style={{ width: 58, height: 58, borderRadius: 12 }} resizeMode="cover" />
+            {currentKit.thumbnailUrl ? (
+              <Image source={{ uri: currentKit.thumbnailUrl }} style={{ width: 58, height: 58, borderRadius: 12 }} resizeMode="cover" />
             ) : (
               <View style={{ width: 58, height: 58, borderRadius: 12, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }}>
                 <Package size={24} color={TEXT3} />
@@ -191,11 +389,11 @@ export default function HomeScreen() {
               <Text style={{ color: TEXT1, fontWeight: '700', fontSize: 14, marginBottom: 3 }} numberOfLines={1}>{currentKit.name}</Text>
               <Text style={{ color: ACCENT, fontSize: 12, fontWeight: '600', marginBottom: 9 }}>In progress</Text>
               <View style={{ height: 4, backgroundColor: '#E0D8D0', borderRadius: 2 }}>
-                <View style={{ height: 4, width: '68%', backgroundColor: ACCENT, borderRadius: 2 }} />
+                <View style={{ height: 4, width: `${kitProgress(currentKit)}%`, backgroundColor: ACCENT, borderRadius: 2 }} />
               </View>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
-              <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 22 }}>68%</Text>
+              <Text style={{ color: TEXT1, fontWeight: '800', fontSize: 22 }}>{kitProgress(currentKit)}%</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                 <Text style={{ color: ACCENT, fontSize: 12, fontWeight: '600' }}>Continue</Text>
                 <ChevronRight size={12} color={ACCENT} strokeWidth={2.5} />
@@ -255,8 +453,8 @@ export default function HomeScreen() {
                   activeOpacity={0.9}
                   style={{ width: 148, borderRadius: 16, overflow: 'hidden' }}
                 >
-                  {kit.thumbnailUri ? (
-                    <Image source={{ uri: kit.thumbnailUri }} style={{ width: 148, height: 148 }} resizeMode="cover" />
+                  {kit.thumbnailUrl ? (
+                    <Image source={{ uri: kit.thumbnailUrl }} style={{ width: 148, height: 148 }} resizeMode="cover" />
                   ) : (
                     <View style={{ width: 148, height: 148, backgroundColor: '#E0D8D0', alignItems: 'center', justifyContent: 'center' }}>
                       <Package size={28} color={TEXT3} />
@@ -267,8 +465,7 @@ export default function HomeScreen() {
             </ScrollView>
           )}
         </View>
-
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -84,7 +84,7 @@ function CircularProgress({ pct }: { pct: number }) {
 export default function GenerateScreen() {
   const insets = useSafeAreaInsets();
   const {
-    pickedImage, selectedCategory, goal,
+    pickedImage, angleImages, productText, selectedCategory, goal,
     listingLanguage, listingTone, listingLength,
     setListingResult, setVariations, updateVariation, setIsGenerating,
     setProductAnalysis,
@@ -150,6 +150,7 @@ export default function GenerateScreen() {
         language: listingLanguage,
         tone: listingTone,
         length: listingLength,
+        userDescription: productText?.trim() || undefined,
       });
       // For listing/social goals animate progress while waiting
       if (!needsImages) {
@@ -183,11 +184,13 @@ export default function GenerateScreen() {
       const sessionId = await cacheProductImage(pickedImage.base64, pickedImage.mimeType);
       setPct(26);
 
+      const userPrefix = productText?.trim() ? `Product description: ${productText.trim()}. ` : '';
+
       let completed = 0;
       await Promise.all(vars.map(async v => {
         updateVariation(v.id, { status: 'generating' });
         try {
-          const imageUrl = await generateAdImage(sessionId, v.prompt);
+          const imageUrl = await generateAdImage(sessionId, userPrefix + v.prompt);
           updateVariation(v.id, { status: 'completed', imageUrl });
         } catch (e) {
           console.error('[generate] image failed:', e);

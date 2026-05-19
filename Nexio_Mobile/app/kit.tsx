@@ -5,11 +5,11 @@ import {
   ArrowLeft, Edit2, Download, Image as ImageIcon,
   FileText, Hash as SocialIcon, Archive, Globe, Tag, ShoppingBag,
   Hash, Music, Copy, Check, X, Plus, Save, Share2, RefreshCw, Zap, Heart,
-  Sparkles,
+  Sparkles, RotateCw,
 } from 'lucide-react-native';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, Image,
-  ActivityIndicator, Dimensions, Alert, Modal, Share, Platform,
+  ActivityIndicator, Dimensions, Alert, Modal, Share, Platform, Linking,
 } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -22,6 +22,7 @@ import { exportProductKit, type ExportPlatform } from '../src/services/exportSer
 import type { ListingResult } from '../src/services/listingService';
 import { getPresetsForCategory, type StylePreset } from '../src/stylePresets';
 import { trackEvent, getRecommendations, type IntelligenceResult } from '../src/services/analyticsService';
+import { loadFavorites, saveFavorites } from '../src/services/favoritesService';
 
 const BG      = '#EDE4DC';
 const CARD    = '#F6F2EE';
@@ -396,10 +397,30 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
   const [downloading, setDownloading] = useState(false);
   const [previewSlot, setPreviewSlot] = useState<PreviewSlot | null>(null);
   const [generatingPreset, setGeneratingPreset] = useState<string | null>(null);
+  const [viewing3D, setViewing3D] = useState<string | null>(null);
+
+  async function getBase64(img: typeof pickedImage): Promise<{ base64: string; mimeType: string } | null> {
+    if (!img) return null;
+    const base64 = img.base64 || await FileSystem.readAsStringAsync(img.uri, { encoding: FileSystem.EncodingType.Base64 });
+    return { base64, mimeType: img.mimeType || 'image/jpeg' };
+  }
 
   const categoryPresets = getPresetsForCategory(category);
   const [insights, setInsights] = useState<IntelligenceResult | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    loadFavorites().then(setFavorites);
+  }, []);
+
+  function toggleFavorite(slotId: string) {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(slotId)) { next.delete(slotId); } else { next.add(slotId); }
+      saveFavorites(next);
+      return next;
+    });
+  }
   const [compareA, setCompareA] = useState<string | null>(null);
   const [compareB, setCompareB] = useState<string | null>(null);
   const [showCompare, setShowCompare] = useState(false);
@@ -434,7 +455,9 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
 
     trackEvent({ category, event_type: 'select_style', style: preset.name });
     try {
-      const sessionId = await cacheProductImage(pickedImage.base64, pickedImage.mimeType);
+      const img = await getBase64(pickedImage);
+      if (!img) { setGeneratingPreset(null); return; }
+      const sessionId = await cacheProductImage(img.base64, img.mimeType);
       const analysis = productAnalysis ?? {
         product_type: 'product', color: '', material: '', style: '',
         media_type: 'photo' as const, target: '', positioning: '', visual_direction: '',
@@ -473,7 +496,9 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
     trackEvent({ category, event_type: 'regenerate_variant', variant_id: slot.id, style: slot.label });
     updateVariation(slot.id, { status: 'generating', imageUrl: undefined });
     try {
-      const sessionId = await cacheProductImage(pickedImage.base64, pickedImage.mimeType);
+      const img = await getBase64(pickedImage);
+      if (!img) { updateVariation(slot.id, { status: 'error' }); return; }
+      const sessionId = await cacheProductImage(img.base64, img.mimeType);
       const imageUrl = await generateAdImage(sessionId, slot.prompt);
       updateVariation(slot.id, { status: 'completed', imageUrl });
     } catch (e) {
@@ -576,6 +601,7 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
       </Modal>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
           {slots.map((slot, i) => {
             const matchedRec = insights?.top_recommendations.find(
@@ -590,53 +616,59 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
             const isInCompare = slot.id === compareA || slot.id === compareB;
             return (
             <View key={i} style={{ width: cardW, borderRadius: 16, overflow: 'hidden', backgroundColor: CARD, borderWidth: 1, borderColor: isFav ? '#ef4444' : isInCompare ? PRIMARY : BORDER }}>
-              {/* Image area */}
-              <TouchableOpacity
-                activeOpacity={slot.imageUrl ? 0.85 : 1}
-                onPress={() => {
-                  if (!slot.imageUrl) return;
-                  trackEvent({ category, event_type: 'view_variant', variant_id: slot.id, style: slot.label });
-                  setPreviewSlot(slot);
-                }}
-                style={{ width: cardW, height: cardW, backgroundColor: '#E8E0D8' }}
-              >
-                {slot.status === 'generating' ? (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <ActivityIndicator color={PRIMARY} />
-                    <Text style={{ color: TEXT3, fontSize: 11 }}>Generating…</Text>
-                  </View>
-                ) : slot.status === 'error' ? (
-                  <TouchableOpacity onPress={() => retrySlot(slot)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 }} activeOpacity={0.7}>
-                    <RefreshCw size={20} color="#D46A5A" />
-                    <Text style={{ color: '#D46A5A', fontSize: 11 }}>Failed — Tap to retry</Text>
-                  </TouchableOpacity>
-                ) : slot.imageUrl ? (
-                  <>
-                    <Image source={{ uri: slot.imageUrl }} style={{ width: cardW, height: cardW }} resizeMode="cover" />
-                    {matchedRec && (
-                      <View style={{
-                        position: 'absolute', top: 6, left: 6,
-                        backgroundColor: matchedRec.confidence === 'High' ? 'rgba(52,211,153,0.9)' : matchedRec.confidence === 'Medium' ? 'rgba(251,191,36,0.9)' : 'rgba(100,100,140,0.85)',
-                        borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3,
-                      }}>
-                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>{matchedRec.conversion_score.toFixed(1)} ★</Text>
-                      </View>
-                    )}
-                    {isBest && (
-                      <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3 }}>
-                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>★ BEST</Text>
-                      </View>
-                    )}
-                    <View style={{ position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.85)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
-                      <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>TAP TO PREVIEW</Text>
+              {/* Image / 3D area */}
+              {viewing3D === slot.id && slot.imageUrl ? (
+                <View style={{ width: cardW, height: cardW, backgroundColor: '#1A1A1A', alignItems: 'center', justifyContent: 'center' }}>
+                  <Image3DViewer imageUri={slot.imageUrl} size={cardW - 16} />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={slot.imageUrl ? 0.85 : 1}
+                  onPress={() => {
+                    if (!slot.imageUrl) return;
+                    trackEvent({ category, event_type: 'view_variant', variant_id: slot.id, style: slot.label });
+                    setPreviewSlot(slot);
+                  }}
+                  style={{ width: cardW, height: cardW, backgroundColor: '#E8E0D8' }}
+                >
+                  {slot.status === 'generating' ? (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <ActivityIndicator color={PRIMARY} />
+                      <Text style={{ color: TEXT3, fontSize: 11 }}>Generating…</Text>
                     </View>
-                  </>
-                ) : (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <ImageIcon size={28} color={TEXT3} />
-                  </View>
-                )}
-              </TouchableOpacity>
+                  ) : slot.status === 'error' ? (
+                    <TouchableOpacity onPress={() => retrySlot(slot)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 }} activeOpacity={0.7}>
+                      <RefreshCw size={20} color="#D46A5A" />
+                      <Text style={{ color: '#D46A5A', fontSize: 11 }}>Failed — Tap to retry</Text>
+                    </TouchableOpacity>
+                  ) : slot.imageUrl ? (
+                    <>
+                      <Image source={{ uri: slot.imageUrl }} style={{ width: cardW, height: cardW }} resizeMode="cover" />
+                      {matchedRec && (
+                        <View style={{
+                          position: 'absolute', top: 6, left: 6,
+                          backgroundColor: matchedRec.confidence === 'High' ? 'rgba(52,211,153,0.9)' : matchedRec.confidence === 'Medium' ? 'rgba(251,191,36,0.9)' : 'rgba(100,100,140,0.85)',
+                          borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3,
+                        }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>{matchedRec.conversion_score.toFixed(1)} ★</Text>
+                        </View>
+                      )}
+                      {isBest && (
+                        <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3 }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>★ BEST</Text>
+                        </View>
+                      )}
+                      <View style={{ position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(215,135,106,0.85)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
+                        <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>TAP TO PREVIEW</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon size={28} color={TEXT3} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
 
               {/* Card footer */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 8 }}>
@@ -646,13 +678,8 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                   <TouchableOpacity
                     onPress={() => {
                       if (!slot.imageUrl) return;
-                      const next = new Set(favorites);
-                      if (isFav) { next.delete(slot.id); }
-                      else {
-                        next.add(slot.id);
-                        trackEvent({ category, event_type: 'favorite_variant', variant_id: slot.id, style: slot.label });
-                      }
-                      setFavorites(next);
+                      if (!isFav) trackEvent({ category, event_type: 'favorite_variant', variant_id: slot.id, style: slot.label });
+                      toggleFavorite(slot.id);
                     }}
                     style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: isFav ? 'rgba(239,68,68,0.12)' : '#E8E0D8', alignItems: 'center', justifyContent: 'center' }}
                     activeOpacity={0.7}>
@@ -698,6 +725,20 @@ function ImagesTab({ variations, category }: { variations: any[]; category: stri
                     }}
                     style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#E8E0D8', alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
                     <Share2 size={13} color={TEXT3} />
+                  </TouchableOpacity>
+                  {/* 3D View */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!slot.imageUrl) return;
+                      setViewing3D(viewing3D === slot.id ? null : slot.id);
+                    }}
+                    style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      backgroundColor: viewing3D === slot.id ? 'rgba(215,135,106,0.18)' : '#E8E0D8',
+                      alignItems: 'center', justifyContent: 'center',
+                      borderWidth: viewing3D === slot.id ? 1 : 0, borderColor: PRIMARY,
+                    }} activeOpacity={0.7}>
+                    <RotateCw size={13} color={viewing3D === slot.id ? PRIMARY : TEXT3} />
                   </TouchableOpacity>
                   {/* A/B Compare */}
                   <TouchableOpacity

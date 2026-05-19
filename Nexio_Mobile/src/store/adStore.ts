@@ -6,18 +6,11 @@ import type { QuickAnalysis } from '../services/analyzeService';
 import type { KitFullData } from '../services/historyService';
 
 export type GenerationGoal = 'full' | 'images' | 'listing' | 'social';
-export type MediaType = 'photo' | 'video';
 
 export interface PickedImage {
   base64: string;
   mimeType: string;
   uri: string;
-}
-
-export interface VideoAsset {
-  uri: string;
-  mimeType: string;
-  name?: string;
 }
 
 export interface StyleImageSet {
@@ -30,8 +23,6 @@ export interface StyleImageSet {
 interface AdStore {
   pickedImage: PickedImage | null;
   angleImages: PickedImage[];
-  videoAsset: VideoAsset | null;
-  mediaType: MediaType;
   productText: string;
   voiceTranscript: string;
   selectedCategory: CategoryType;
@@ -55,8 +46,6 @@ interface AdStore {
   setAngleImages: (imgs: PickedImage[]) => void;
   addAngleImage: (img: PickedImage) => void;
   removeAngleImage: (index: number) => void;
-  setVideoAsset: (v: VideoAsset | null) => void;
-  setMediaType: (t: MediaType) => void;
   setProductText: (t: string) => void;
   setVoiceTranscript: (t: string) => void;
   setCategory: (cat: CategoryType) => void;
@@ -79,8 +68,6 @@ interface AdStore {
 export const useAdStore = create<AdStore>((set) => ({
   pickedImage: null,
   angleImages: [],
-  videoAsset: null,
-  mediaType: 'photo',
   productText: '',
   voiceTranscript: '',
   selectedCategory: 'General',
@@ -100,8 +87,6 @@ export const useAdStore = create<AdStore>((set) => ({
   setAngleImages:     (imgs) => set({ angleImages: imgs }),
   addAngleImage:      (img)  => set(s => ({ angleImages: [...s.angleImages, img] })),
   removeAngleImage:   (idx)  => set(s => ({ angleImages: s.angleImages.filter((_, i) => i !== idx) })),
-  setVideoAsset:      (v)    => set({ videoAsset: v }),
-  setMediaType:       (t)    => set({ mediaType: t }),
   setProductText:     (t)    => set({ productText: t }),
   setVoiceTranscript: (t)    => set({ voiceTranscript: t }),
   setCategory:        (cat)  => set({ selectedCategory: cat }),
@@ -138,7 +123,6 @@ export const useAdStore = create<AdStore>((set) => ({
       overallBestType: null,
       styleImages: [],
       angleImages: [],
-      videoAsset: null,
       productText: '',
       voiceTranscript: '',
     }),
@@ -146,8 +130,6 @@ export const useAdStore = create<AdStore>((set) => ({
     set({
       pickedImage: null,
       angleImages: [],
-      videoAsset: null,
-      mediaType: 'photo',
       productText: '',
       voiceTranscript: '',
       selectedCategory: 'General',
